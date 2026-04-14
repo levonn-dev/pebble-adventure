@@ -147,6 +147,7 @@ static void cr_click_select(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
   if (s_cr_phase == 0) {
     uint8_t len = (uint8_t)strlen(s_cr_name);
+    if (len == 0) return;  // Don't allow empty name
     if (s_cr_cursor < len && s_cr_cursor < 10) {
       s_cr_cursor++;
       if (s_cr_cursor >= len) cr_confirm_name();
@@ -238,6 +239,7 @@ static Layer    *s_main_layer      = NULL;
 static AppTimer *s_main_anim_timer = NULL;
 static uint8_t   s_main_fox_frame  = 0;
 static Pet       s_main_pet;
+static bool      s_main_has_active_adv = false;
 
 static void main_layer_update(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
@@ -284,11 +286,9 @@ static void main_layer_update(Layer *layer, GContext *ctx) {
       GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   }
 
-  // Bottom action hint
-  Adventure adv;
-  bool has_active = adventure_load(&adv) && adv.active;
+  // Bottom action hint — uses cached state, refreshed on window_load and worker messages
   graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
-  graphics_draw_text(ctx, has_active ? "SELECT: Resume" : "SELECT: Adventure",
+  graphics_draw_text(ctx, s_main_has_active_adv ? "SELECT: Resume" : "SELECT: Adventure",
     fonts_get_system_font(FONT_KEY_GOTHIC_14),
     GRect(0, h - 18, w, 16),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
@@ -303,8 +303,8 @@ static void main_anim_callback(void *ctx) {
 static void main_click_select(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
   Adventure adv;
-  bool has_active = adventure_load(&adv) && adv.active;
-  if (!has_active) {
+  s_main_has_active_adv = adventure_load(&adv) && adv.active;
+  if (!s_main_has_active_adv) {
     pet_load(&s_main_pet);
     adventure_init(&adv, &s_main_pet);
     adventure_save(&adv);
@@ -318,6 +318,8 @@ static void main_click_config(void *ctx) {
 
 static void main_window_load(Window *window) {
   pet_load(&s_main_pet);
+  Adventure adv;
+  s_main_has_active_adv = adventure_load(&adv) && adv.active;
   Layer *root = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(root);
   s_main_layer = layer_create(bounds);
@@ -350,6 +352,7 @@ static Layer     *s_adv_layer      = NULL;
 static AppTimer  *s_adv_anim_timer = NULL;
 static uint8_t    s_adv_fox_frame  = 0;
 static Adventure  s_adv_current;
+static Pet        s_adv_pet;
 static bool       s_adv_show_info  = false;
 
 static const char *s_biome_names[NUM_BIOMES] = {
@@ -418,7 +421,7 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
   // Steps today
   uint32_t steps = (uint32_t)health_service_sum_today(HealthMetricStepCount);
   char steps_buf[20];
-  snprintf(steps_buf, sizeof(steps_buf), "Steps: %lu", steps);
+  snprintf(steps_buf, sizeof(steps_buf), "Steps: %lu", (unsigned long)steps);
   graphics_context_set_text_color(ctx, GColorWhite);
   graphics_draw_text(ctx, steps_buf,
     fonts_get_system_font(FONT_KEY_GOTHIC_14),
@@ -432,9 +435,8 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
     GRect(0, h - 18, w, 16),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
-  // Info overlay (toggled by Up)
+  // Info overlay (toggled by Up) — uses cached s_adv_pet, loaded on window_load
   if (s_adv_show_info) {
-    Pet pet; pet_load(&pet);
     GRect info = GRect(8, 50, w - 16, 68);
     graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorDarkGray, GColorBlack));
     graphics_fill_rect(ctx, info, 4, GCornersAll);
@@ -442,18 +444,18 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
     graphics_draw_round_rect(ctx, info, 4);
 
     char ibuf[32];
-    snprintf(ibuf, sizeof(ibuf), "%s  Lv.%d", pet.name, (int)pet.level);
+    snprintf(ibuf, sizeof(ibuf), "%s  Lv.%d", s_adv_pet.name, (int)s_adv_pet.level);
     graphics_context_set_text_color(ctx, GColorWhite);
     graphics_draw_text(ctx, ibuf, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
       GRect(12, 53, w - 24, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
-    snprintf(ibuf, sizeof(ibuf), "XP %lu/%lu", (uint32_t)pet.xp, (uint32_t)pet.xp_next_level);
+    snprintf(ibuf, sizeof(ibuf), "XP %lu/%lu", (unsigned long)s_adv_pet.xp, (unsigned long)s_adv_pet.xp_next_level);
     graphics_draw_text(ctx, ibuf, fonts_get_system_font(FONT_KEY_GOTHIC_14),
       GRect(12, 70, w - 24, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
     snprintf(ibuf, sizeof(ibuf), "S%d D%d A%d V%d I%d L%d",
-             (int)pet.str, (int)pet.dex, (int)pet.agi,
-             (int)pet.vit, (int)pet.intel, (int)pet.luk);
+             (int)s_adv_pet.str, (int)s_adv_pet.dex, (int)s_adv_pet.agi,
+             (int)s_adv_pet.vit, (int)s_adv_pet.intel, (int)s_adv_pet.luk);
     graphics_draw_text(ctx, ibuf, fonts_get_system_font(FONT_KEY_GOTHIC_14),
       GRect(12, 88, w - 24, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   }
@@ -461,7 +463,7 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
 
 static void adv_anim_callback(void *ctx) {
   s_adv_fox_frame = (s_adv_fox_frame + 1) % 4;
-  adventure_load(&s_adv_current);   // Refresh — worker may have updated persist
+  // Don't poll persist here — s_adv_current is refreshed by screens_on_worker_message
   layer_mark_dirty(s_adv_layer);
   s_adv_anim_timer = app_timer_register(300, adv_anim_callback, NULL);
 }
@@ -488,6 +490,7 @@ static void adv_click_config(void *ctx) {
 
 static void adv_window_load(Window *window) {
   adventure_load(&s_adv_current);
+  pet_load(&s_adv_pet);
   Layer *root = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(root);
   s_adv_layer = layer_create(bounds);
@@ -522,6 +525,7 @@ static Layer   *s_res_layer      = NULL;
 static uint32_t s_res_xp         = 0;
 static uint8_t  s_res_encounters = 0;
 static uint8_t  s_res_lvls       = 0;
+static Pet      s_res_pet;
 
 static void res_layer_update(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
@@ -541,7 +545,7 @@ static void res_layer_update(Layer *layer, GContext *ctx) {
   char buf[32];
   graphics_context_set_text_color(ctx, GColorWhite);
 
-  snprintf(buf, sizeof(buf), "XP earned: %lu", s_res_xp);
+  snprintf(buf, sizeof(buf), "XP earned: %lu", (unsigned long)s_res_xp);
   graphics_draw_text(ctx, buf, fonts_get_system_font(FONT_KEY_GOTHIC_14),
     GRect(12, 54, w - 24, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
@@ -557,13 +561,12 @@ static void res_layer_update(Layer *layer, GContext *ctx) {
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
   }
 
-  // XP progress bar for current level
-  Pet pet; pet_load(&pet);
-  snprintf(buf, sizeof(buf), "Lv.%d", (int)pet.level);
+  // XP progress bar for current level — uses cached s_res_pet from window_load
+  snprintf(buf, sizeof(buf), "Lv.%d", (int)s_res_pet.level);
   graphics_context_set_text_color(ctx, GColorWhite);
   graphics_draw_text(ctx, buf, fonts_get_system_font(FONT_KEY_GOTHIC_14),
     GRect(8, h - 44, 36, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
-  ui_draw_progress_bar(ctx, GRect(48, h - 40, w - 58, 10), pet.xp, pet.xp_next_level);
+  ui_draw_progress_bar(ctx, GRect(48, h - 40, w - 58, 10), s_res_pet.xp, s_res_pet.xp_next_level);
 
   const char *action = (s_res_lvls > 0) ? "SELECT: Alloc pts" : "SELECT: Continue";
   graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
@@ -576,8 +579,7 @@ static void res_click_select(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
   window_stack_pop(true);
   if (s_res_lvls > 0) {
-    Pet pet; pet_load(&pet);
-    screens_push_levelup(&pet);
+    screens_push_levelup(&s_res_pet);
   } else {
     screens_push_main();
   }
@@ -589,9 +591,9 @@ static void res_click_config(void *ctx) {
 
 static void res_window_load(Window *window) {
   // Apply XP and save updated pet
-  Pet pet; pet_load(&pet);
-  s_res_lvls = stats_apply_xp(&pet, s_res_xp);
-  pet_save(&pet);
+  pet_load(&s_res_pet);
+  s_res_lvls = stats_apply_xp(&s_res_pet, s_res_xp);
+  pet_save(&s_res_pet);
 
   // Clear adventure
   Adventure blank; memset(&blank, 0, sizeof(Adventure));
@@ -758,6 +760,8 @@ void screens_push_levelup(Pet *pet) {
 void screens_on_worker_message(uint16_t type, AppWorkerMessage *message) {
   (void)message;
   adventure_load(&s_adv_current);
+  // Update main screen's cached adventure state
+  s_main_has_active_adv = s_adv_current.active;
   if (s_adv_layer)  layer_mark_dirty(s_adv_layer);
   if (s_main_layer) layer_mark_dirty(s_main_layer);
   if (type == WORKER_MSG_ADVENTURE_DONE) {

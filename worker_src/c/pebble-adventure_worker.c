@@ -79,9 +79,17 @@ static void health_handler(HealthEventType event, void *context) {
   if (event != HealthEventMovementUpdate && event != HealthEventSignificantUpdate) return;
 
   uint32_t current = (uint32_t)health_service_sum_today(HealthMetricStepCount);
-  if (current <= s_last_steps) return;
+  if (current == s_last_steps) return;
 
-  uint32_t delta = current - s_last_steps;
+  // Handle midnight reset: step counter resets to 0 at midnight,
+  // so current < s_last_steps means a new day started.
+  uint32_t delta;
+  if (current < s_last_steps) {
+    delta = current;  // All of today's steps are new
+  } else {
+    delta = current - s_last_steps;
+  }
+  if (delta == 0) return;
   s_last_steps   = current;
   persist_write_int(PERSIST_KEY_WORKER_STEPS, (int32_t)s_last_steps);
 
