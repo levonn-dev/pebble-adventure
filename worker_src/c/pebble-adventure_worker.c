@@ -8,6 +8,8 @@
 #define PERSIST_KEY_PET           1
 #define PERSIST_KEY_ADVENTURE     2
 #define PERSIST_KEY_WORKER_STEPS  3
+#define PERSIST_KEY_PENDING_ENCOUNTER 4
+#define NUM_ENCOUNTERS 5
 
 typedef struct {
   char     name[12];
@@ -33,12 +35,14 @@ typedef enum {
   WORKER_MSG_STEPS_UPDATE   = 0,
   WORKER_MSG_SEGMENT_DONE   = 1,
   WORKER_MSG_ADVENTURE_DONE = 2,
+  WORKER_MSG_ENCOUNTER      = 3,
 } WorkerMsgType;
 
 // ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
 static uint32_t s_last_steps = 0;
+static uint32_t s_steps_in_window = 0;  // steps since last encounter check
 
 // ---------------------------------------------------------------------------
 // Inline progress logic — mirrors adventure_apply_steps in game_state.c.
@@ -99,6 +103,26 @@ static void health_handler(HealthEventType event, void *context) {
   if (!adv.active) return;
 
   uint8_t outcome = worker_apply_steps(&adv, delta);
+
+  // --- Encounter detection (15% per 100 steps) ---
+  if (adv.active) {
+    s_steps_in_window += delta;
+    while (s_steps_in_window >= 100) {
+      s_steps_in_window -= 100;
+      if ((rand() % 100) < 15) {
+        uint8_t enc_id = (uint8_t)(rand() % NUM_ENCOUNTERS);
+        persist_write_int(PERSIST_KEY_PENDING_ENCOUNTER, (int32_t)enc_id);
+        adv.encounters_total++;
+        AppWorkerMessage enc_msg = {
+          .data0 = enc_id,
+          .data1 = 0
+        };
+        app_worker_send_message(WORKER_MSG_ENCOUNTER, &enc_msg);
+        break;  // at most one encounter per 100-step window
+      }
+    }
+  }
+
   persist_write_data(PERSIST_KEY_ADVENTURE, &adv, sizeof(WorkerAdventure));
 
   AppWorkerMessage msg = {
@@ -110,7 +134,7 @@ static void health_handler(HealthEventType event, void *context) {
     app_worker_send_message(WORKER_MSG_ADVENTURE_DONE, &msg);
   } else if (outcome == 1) {
     app_worker_send_message(WORKER_MSG_SEGMENT_DONE, &msg);
-  } else {
+  } else if (outcome == 0) {
     app_worker_send_message(WORKER_MSG_STEPS_UPDATE, &msg);
   }
 }
@@ -119,6 +143,7 @@ static void health_handler(HealthEventType event, void *context) {
 // Worker main
 // ---------------------------------------------------------------------------
 int main(void) {
+  srand(time(NULL));
   if (persist_exists(PERSIST_KEY_WORKER_STEPS)) {
     s_last_steps = (uint32_t)persist_read_int(PERSIST_KEY_WORKER_STEPS);
   }
