@@ -240,14 +240,16 @@ static void effects_water(GContext *ctx, GRect area, uint8_t tick) {
 }
 
 static void effects_mountain(GContext *ctx, GRect area, uint8_t tick) {
-  // Drifting snow particles — light blue so they're visible against white
-  // mountain peaks. Drift right-to-left and fall slowly.
-  graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorCeleste, GColorLightGray));
+  // Drifting snowflakes — white filled circle with a black outline so
+  // they're visible against the white mountain peaks. Drift right-to-left.
   for (uint8_t i = 0; i < 8; i++) {
     int16_t sx = (int16_t)(((uint32_t)bg_hash(i, 30) + (uint32_t)area.size.w * 256
                             - (uint32_t)(tick)) % area.size.w) + area.origin.x;
     int16_t sy = (int16_t)((bg_hash(i, 31) + tick * 2) % area.size.h) + area.origin.y;
-    graphics_fill_circle(ctx, GPoint(sx, sy), 1);
+    graphics_context_set_stroke_color(ctx, GColorBlack);
+    graphics_draw_circle(ctx, GPoint(sx, sy), 1);        // black outline
+    graphics_context_set_fill_color(ctx, GColorWhite);
+    graphics_fill_circle(ctx, GPoint(sx, sy), 0);        // white center pixel
   }
 }
 
