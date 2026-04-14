@@ -228,13 +228,16 @@ static void effects_cave(GContext *ctx, GRect area, uint8_t tick) {
 }
 
 static void effects_storm(GContext *ctx, GRect area, uint8_t tick) {
-  // Dense diagonal rain streaks falling right-to-left (wind blowing left).
+  // Dense diagonal rain streaks drifting right-to-left (wind from the right).
+  // Subtract tick from x so drops move leftward over time; each streak
+  // angles left (rx - 2) to match the wind direction.
   graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorCeleste, GColorWhite));
   graphics_context_set_stroke_width(ctx, 1);
   for (uint8_t i = 0; i < 30; i++) {
-    int16_t rx = (int16_t)((bg_hash(i, 50) + tick * 3) % area.size.w) + area.origin.x;
+    int16_t rx = (int16_t)(((uint32_t)bg_hash(i, 50) + (uint32_t)area.size.w * 256
+                            - (uint32_t)(tick * 3)) % area.size.w) + area.origin.x;
     int16_t ry = (int16_t)((bg_hash(i, 51) + tick * 6) % area.size.h) + area.origin.y;
-    graphics_draw_line(ctx, GPoint(rx, ry), GPoint(rx + 2, ry + 5));
+    graphics_draw_line(ctx, GPoint(rx, ry), GPoint(rx - 2, ry + 5));
   }
 
   // Lightning — strikes every ~25 ticks, visible for 2 ticks.
