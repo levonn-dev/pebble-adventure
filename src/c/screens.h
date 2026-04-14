@@ -15,6 +15,7 @@ void screens_push_adventure(void);
 void screens_push_results(uint32_t xp_earned, uint8_t encounters);
 void screens_push_levelup(Pet *pet);
 void screens_push_stats(void);
+void screens_push_options(void);
 
 // Called from main.c when a worker message arrives while the app is open.
 void screens_on_worker_message(uint16_t type, AppWorkerMessage *message);
