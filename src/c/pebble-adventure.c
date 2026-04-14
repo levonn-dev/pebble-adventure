@@ -2,6 +2,7 @@
 #include "game_state.h"
 #include "events.h"
 #include "screens.h"
+#include "sprites.h"
 
 static void worker_message_handler(uint16_t type, AppWorkerMessage *message) {
   screens_on_worker_message(type, message);
@@ -9,6 +10,7 @@ static void worker_message_handler(uint16_t type, AppWorkerMessage *message) {
 
 static void init(void) {
   srand(time(NULL));
+  sprites_init();
 
   // Subscribe to worker messages before pushing any window
   app_worker_message_subscribe(worker_message_handler);
@@ -49,6 +51,7 @@ static void init(void) {
 
 static void deinit(void) {
   app_worker_message_unsubscribe();
+  sprites_deinit();
 }
 
 int main(void) {

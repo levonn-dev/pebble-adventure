@@ -1,4 +1,5 @@
 #include "ui.h"
+#include "sprites.h"
 #include "shared_types.h"
 #include <pebble.h>
 
@@ -119,6 +120,16 @@ static void fox_draw_tail(GContext *ctx, GPoint c, int8_t body_dy,
 }
 
 void ui_draw_fox(GContext *ctx, GPoint center, FoxState state, uint8_t frame) {
+  // Try PNG sprite first — falls back to procedural if not loaded
+  GBitmap *sprite = sprites_get_fox(state, frame);
+  if (sprite) {
+    GRect dest = GRect(center.x - 8, center.y - 8, 16, 16);
+    graphics_context_set_compositing_mode(ctx, GCompOpSet);
+    graphics_draw_bitmap_in_rect(ctx, sprite, dest);
+    return;
+  }
+
+  // Procedural fallback
   int8_t body_dy = 0;
   int8_t ear_dy = 0;
   int8_t tail_dy = 0;
