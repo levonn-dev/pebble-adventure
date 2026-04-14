@@ -18,12 +18,12 @@ static const char *s_sa_title = NULL;
 static StatAllocDoneCallback s_sa_done_cb = NULL;
 
 static const char *s_sa_stat_help[NUM_STATS] = {
-  "Strength\nWater & Mountain\nbiome speed",
-  "Dexterity\nForest biome speed\nCatch game timing",
-  "Agility\nPlains biome speed\nDodge game speed",
-  "Vitality\nStorm biome speed\nEndurance",
-  "Intelligence\nCave biome speed\nRiddle hints",
-  "Luck\nForest & Cave bonus\nTreasure prizes",
+  "Strength\nRaw physical power\nPush through obstacles",
+  "Dexterity\nPrecision and timing\nHand-eye coordination",
+  "Agility\nSpeed and reflexes\nQuick reactions",
+  "Vitality\nEndurance and grit\nWeather harsh conditions",
+  "Intelligence\nWit and knowledge\nSolve puzzles faster",
+  "Luck\nFortune favors you\nBetter rewards found",
 };
 
 static void sa_layer_update(Layer *layer, GContext *ctx) {
