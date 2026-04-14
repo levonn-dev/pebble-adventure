@@ -104,7 +104,8 @@ static bool     s_opt_confirm = false;
 #define OPT_DELETE    1
 #ifdef DEBUG_MODE
 #define OPT_SKIP_SEG  2
-#define OPT_COUNT     3
+#define OPT_ADD_STEPS 3
+#define OPT_COUNT     4
 #else
 #define OPT_COUNT     2
 #endif
@@ -188,6 +189,15 @@ static void opt_layer_update(Layer *layer, GContext *ctx) {
       fonts_get_system_font(FONT_KEY_GOTHIC_18),
       GRect(8, row2_y, w - 16, 18),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+
+    // Debug: add 100 steps
+    int16_t row3_y = row2_y + 24;
+    GColor c3 = ui_draw_menu_row(ctx, row3_y, w, 18, s_opt_cursor == OPT_ADD_STEPS);
+    graphics_context_set_text_color(ctx, c3);
+    graphics_draw_text(ctx, "[DBG] +100 Steps",
+      fonts_get_system_font(FONT_KEY_GOTHIC_18),
+      GRect(8, row3_y, w - 16, 18),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 #endif
 
     graphics_context_set_text_color(ctx, GColorLightGray);
@@ -240,7 +250,6 @@ static void opt_click_select(ClickRecognizerRef r, void *ctx) {
   else if (s_opt_cursor == OPT_SKIP_SEG) {
     Adventure adv;
     if (adventure_load(&adv) && adv.active && adv.current_segment < adv.num_segments) {
-      // Complete current segment
       adv.segment_progress[adv.current_segment] = adv.segment_length[adv.current_segment];
       uint8_t diff = adv.segments[adv.current_segment] + 1;
       adv.total_xp_earned += (uint32_t)(adv.current_segment * 50) + (uint32_t)(diff * 30);
@@ -248,6 +257,14 @@ static void opt_click_select(ClickRecognizerRef r, void *ctx) {
       if (adv.current_segment >= adv.num_segments) {
         adv.active = false;
       }
+      adventure_save(&adv);
+      s_main_has_active_adv = adv.active;
+    }
+    layer_mark_dirty(s_opt_layer);
+  } else if (s_opt_cursor == OPT_ADD_STEPS) {
+    Adventure adv;
+    if (adventure_load(&adv) && adv.active) {
+      adventure_apply_steps(&adv, 100);
       adventure_save(&adv);
       s_main_has_active_adv = adv.active;
     }
