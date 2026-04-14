@@ -3,6 +3,7 @@
 #include "events.h"
 #include "stats.h"
 #include "ui.h"
+#include "minigames.h"
 #include <pebble.h>
 
 // ---------------------------------------------------------------------------
@@ -539,10 +540,17 @@ static void adv_click_select(ClickRecognizerRef r, void *ctx) {
   }
 }
 
+static void adv_click_down(ClickRecognizerRef r, void *ctx) {
+  (void)r; (void)ctx;
+  if (!adventure_is_complete(&s_adv_current)) {
+    minigames_push_selection();
+  }
+}
+
 static void adv_click_config(void *ctx) {
-  window_single_click_subscribe(BUTTON_ID_UP,    adv_click_up);
+  window_single_click_subscribe(BUTTON_ID_UP,     adv_click_up);
+  window_single_click_subscribe(BUTTON_ID_DOWN,   adv_click_down);
   window_single_click_subscribe(BUTTON_ID_SELECT, adv_click_select);
-  // Down reserved for mini-games (Plan 2)
 }
 
 static void adv_window_appear(Window *window) {
