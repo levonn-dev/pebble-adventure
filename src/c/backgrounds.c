@@ -165,11 +165,11 @@ static void effects_plains(GContext *ctx, GRect area, uint8_t tick) {
   // in the middle band between sky and ground.
   if (area.size.h > 60) {
     graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
-    for (uint8_t i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
       uint16_t x_seed = bg_hash(i, 2);
       int16_t px = (int16_t)(((uint32_t)x_seed + (uint32_t)area.size.w * 256
                               - (uint32_t)(tick * 2)) % area.size.w) + area.origin.x;
-      int16_t py = area.origin.y + 30 + (int16_t)(bg_hash(i, 3) % (area.size.h / 3));
+      int16_t py = area.origin.y + 60 + (int16_t)(bg_hash(i, 3) % (area.size.h / 3));
       graphics_fill_circle(ctx, GPoint(px, py), 1);
     }
   }
