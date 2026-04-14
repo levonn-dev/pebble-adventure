@@ -103,9 +103,10 @@ static bool     s_opt_confirm = false;
 #define OPT_VIBRATION 0
 #define OPT_DELETE    1
 #ifdef DEBUG_MODE
-#define OPT_SKIP_SEG  2
-#define OPT_ADD_STEPS 3
-#define OPT_COUNT     4
+#define OPT_SKIP_SEG   2
+#define OPT_ADD_STEPS  3
+#define OPT_ENCOUNTER  4
+#define OPT_COUNT      5
 #else
 #define OPT_COUNT     2
 #endif
@@ -198,6 +199,15 @@ static void opt_layer_update(Layer *layer, GContext *ctx) {
       fonts_get_system_font(FONT_KEY_GOTHIC_18),
       GRect(8, row3_y, w - 16, 18),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+
+    // Debug: trigger random encounter
+    int16_t row4_y = row3_y + 24;
+    GColor c4 = ui_draw_menu_row(ctx, row4_y, w, 18, s_opt_cursor == OPT_ENCOUNTER);
+    graphics_context_set_text_color(ctx, c4);
+    graphics_draw_text(ctx, "[DBG] Encounter",
+      fonts_get_system_font(FONT_KEY_GOTHIC_18),
+      GRect(8, row4_y, w - 16, 18),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 #endif
 
     graphics_context_set_text_color(ctx, GColorLightGray);
@@ -267,6 +277,34 @@ static void opt_click_select(ClickRecognizerRef r, void *ctx) {
       adventure_apply_steps(&adv, 100);
       adventure_save(&adv);
       s_main_has_active_adv = adv.active;
+    }
+    layer_mark_dirty(s_opt_layer);
+  } else if (s_opt_cursor == OPT_ENCOUNTER) {
+    Adventure adv;
+    if (adventure_load(&adv) && adv.active) {
+      uint8_t enc_id = (uint8_t)(rand() % NUM_ENCOUNTERS);
+      Pet pet;
+      pet_load(&pet);
+      EncounterResult result = encounter_resolve(enc_id, &pet);
+      encounter_apply(&result, &adv);
+      adv.encounters_total++;
+      adventure_save(&adv);
+      s_main_has_active_adv = adv.active;
+      // Queue popup for adventure screen
+      char title[24];
+      snprintf(title, sizeof(title), "%s: %s",
+               result.encounter_name, result.won ? "WIN" : "LOSE");
+      char detail[32];
+      if (result.progress_change != 0) {
+        snprintf(detail, sizeof(detail), "%s%d%% progress",
+                 result.progress_change > 0 ? "+" : "", (int)result.progress_change);
+      } else if (result.bonus_xp > 0) {
+        snprintf(detail, sizeof(detail), "+%lu bonus XP", (unsigned long)result.bonus_xp);
+      } else {
+        snprintf(detail, sizeof(detail), "No effect");
+      }
+      adv_queue_popup(title, detail, result.won);
+      ui_vibe_short();
     }
     layer_mark_dirty(s_opt_layer);
   }
