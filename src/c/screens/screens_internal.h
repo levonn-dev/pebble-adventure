@@ -4,10 +4,7 @@
 
 // Shared state -- written by owning screen, read by screen_worker.c
 extern Layer     *s_adv_layer;
-extern Layer     *s_main_layer;
 extern Adventure  s_adv_current;
-extern bool       s_main_has_active_adv;
-extern Window    *s_main_window;
 extern Window    *s_cr_window;
 
 // Shared across creation and levelup screens

@@ -10,7 +10,6 @@ typedef enum {
 } WorkerMsgType;
 
 void screens_push_creation(void);
-void screens_push_main(void);
 void screens_push_adventure(void);
 void screens_push_results(uint32_t xp_earned, uint8_t encounters);
 void screens_push_levelup(Pet *pet);
