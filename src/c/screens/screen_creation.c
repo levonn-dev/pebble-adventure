@@ -16,9 +16,19 @@ static uint8_t  s_cr_cursor = 0;
 static Pet      s_cr_pet;
 static uint8_t  s_cr_stat_row = 0;         // 0-5 = stat, 6 = Done
 static uint16_t s_cr_allocated[NUM_STATS]; // points added this session per stat
+static bool     s_cr_show_help = false;    // stat help overlay visible
 
 const char *s_stat_names[NUM_STATS] = {
   "STR", "DEX", "AGI", "VIT", "INT", "LUK"
+};
+
+static const char *s_stat_help[NUM_STATS] = {
+  "Strength\nWater & Mountain\nbiome speed",
+  "Dexterity\nForest biome speed\nCatch game timing",
+  "Agility\nPlains biome speed\nDodge game speed",
+  "Vitality\nStorm biome speed\nEndurance",
+  "Intelligence\nCave biome speed\nRiddle hints",
+  "Luck\nForest & Cave bonus\nTreasure prizes",
 };
 
 // Character cycle order: A-Z a-z 0-9 ! @ # $ % & * - _ + = . , ? ' (space)
@@ -220,11 +230,29 @@ static void cr_layer_update(Layer *layer, GContext *ctx) {
       fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
       GRect(0, 44 + NUM_STATS * 17, w, 16),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+    // Stat help overlay
+    if (s_cr_show_help && s_cr_stat_row < NUM_STATS) {
+      GRect bounds = layer_get_bounds(layer);
+      int16_t h = bounds.size.h;
+      GRect help_rect = GRect(8, h / 2 - 30, w - 16, 60);
+      graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorOxfordBlue, GColorBlack));
+      graphics_fill_rect(ctx, help_rect, 4, GCornersAll);
+      graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
+      graphics_draw_round_rect(ctx, help_rect, 4);
+
+      graphics_context_set_text_color(ctx, GColorWhite);
+      graphics_draw_text(ctx, s_stat_help[s_cr_stat_row],
+        fonts_get_system_font(FONT_KEY_GOTHIC_14),
+        GRect(12, h / 2 - 26, w - 24, 52),
+        GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+    }
   }
 }
 
 static void cr_click_up(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
+  if (s_cr_show_help) { s_cr_show_help = false; layer_mark_dirty(s_cr_layer); return; }
   if (s_cr_phase == 0) { cr_cycle_char(1); }
   else if (s_cr_phase == 2 && s_cr_stat_row > 0) { s_cr_stat_row--; }
   layer_mark_dirty(s_cr_layer);
@@ -232,6 +260,7 @@ static void cr_click_up(ClickRecognizerRef r, void *ctx) {
 
 static void cr_click_down(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
+  if (s_cr_show_help) { s_cr_show_help = false; layer_mark_dirty(s_cr_layer); return; }
   if (s_cr_phase == 0) { cr_cycle_char(-1); }
   else if (s_cr_phase == 2 && s_cr_stat_row < NUM_STATS) { s_cr_stat_row++; }
   layer_mark_dirty(s_cr_layer);
@@ -244,6 +273,7 @@ static void cr_deferred_remove(void *data) {
 
 static void cr_click_select(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
+  if (s_cr_show_help) { s_cr_show_help = false; layer_mark_dirty(s_cr_layer); return; }
   if (s_cr_phase == 0) {
     // Select advances cursor only if current position has a character
     if (s_cr_name[s_cr_cursor] == '\0') return;  // must type something first
@@ -277,6 +307,7 @@ static void cr_click_select(ClickRecognizerRef r, void *ctx) {
 
 static void cr_click_back(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
+  if (s_cr_show_help) { s_cr_show_help = false; layer_mark_dirty(s_cr_layer); return; }
   if (s_cr_phase == 0) {
     uint8_t len = (uint8_t)strlen(s_cr_name);
     if (s_cr_cursor > len && s_cr_cursor > 0) {
@@ -306,6 +337,12 @@ static void cr_click_back(ClickRecognizerRef r, void *ctx) {
 
 static void cr_long_select(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
+  if (s_cr_phase == 2 && s_cr_stat_row < NUM_STATS) {
+    // Show stat help overlay
+    s_cr_show_help = !s_cr_show_help;
+    layer_mark_dirty(s_cr_layer);
+    return;
+  }
   if (s_cr_phase == 0) {
     // Trim trailing spaces
     uint8_t len = (uint8_t)strlen(s_cr_name);
