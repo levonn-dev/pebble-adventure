@@ -165,7 +165,7 @@ static void th_click_select(ClickRecognizerRef r, void *ctx) {
     adventure_save(&adv);
   }
 
-  vibes_short_pulse();
+  ui_vibe_short();
   layer_mark_dirty(s_th_layer);
 }
 

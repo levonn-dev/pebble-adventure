@@ -154,7 +154,7 @@ static void ct_click_select(ClickRecognizerRef r, void *ctx) {
       s_ct_item_y <= s_ct_catch_zone_y + s_ct_catch_zone_h) {
     s_ct_caught++;
     s_ct_item_active = false;
-    vibes_short_pulse();
+    ui_vibe_short();
     if (s_ct_caught >= CATCH_GOAL) {
       ct_end_game(true);
       return;

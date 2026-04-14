@@ -97,10 +97,12 @@ static void main_click_select(ClickRecognizerRef r, void *ctx) {
 // ---------------------------------------------------------------------------
 static Window  *s_opt_window  = NULL;
 static Layer   *s_opt_layer   = NULL;
-static uint8_t  s_opt_cursor  = 0;   // 0 = Delete Pet, (add more later)
+static uint8_t  s_opt_cursor  = 0;   // 0=Vibration, 1=Delete Pet
 static bool     s_opt_confirm = false;
 
-#define OPT_COUNT 1
+#define OPT_VIBRATION 0
+#define OPT_DELETE    1
+#define OPT_COUNT     2
 
 static void opt_layer_update(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
@@ -118,7 +120,7 @@ static void opt_layer_update(Layer *layer, GContext *ctx) {
     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
   if (s_opt_confirm) {
-    // Confirmation screen
+    // Delete confirmation screen
     graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorRed, GColorWhite));
     graphics_draw_text(ctx, "DELETE FOX?",
       fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
@@ -150,12 +152,25 @@ static void opt_layer_update(Layer *layer, GContext *ctx) {
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
   } else {
     // Menu items
-    int16_t row_y = 60;
-    ui_draw_menu_row(ctx, row_y, w, 18, true);
-    graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorRed, GColorBlack));
+    // Vibration toggle
+    int16_t row0_y = 56;
+    GColor c0 = ui_draw_menu_row(ctx, row0_y, w, 18, s_opt_cursor == OPT_VIBRATION);
+    char vib_buf[20];
+    snprintf(vib_buf, sizeof(vib_buf), "Vibration: %s", ui_vibration_enabled() ? "ON" : "OFF");
+    graphics_context_set_text_color(ctx, c0);
+    graphics_draw_text(ctx, vib_buf,
+      fonts_get_system_font(FONT_KEY_GOTHIC_18),
+      GRect(8, row0_y, w - 16, 18),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+
+    // Delete pet
+    int16_t row1_y = row0_y + 24;
+    GColor c1 = ui_draw_menu_row(ctx, row1_y, w, 18, s_opt_cursor == OPT_DELETE);
+    graphics_context_set_text_color(ctx,
+      s_opt_cursor == OPT_DELETE ? PBL_IF_COLOR_ELSE(GColorRed, GColorBlack) : PBL_IF_COLOR_ELSE(GColorRed, GColorWhite));
     graphics_draw_text(ctx, "Delete Pet",
       fonts_get_system_font(FONT_KEY_GOTHIC_18),
-      GRect(8, row_y, w - 16, 18),
+      GRect(8, row1_y, w - 16, 18),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
     graphics_context_set_text_color(ctx, GColorLightGray);
@@ -168,32 +183,59 @@ static void opt_layer_update(Layer *layer, GContext *ctx) {
 
 static void opt_deferred_remove_both(void *data) {
   (void)data;
-  // Remove options and main windows — creation is now on top
   if (s_opt_window) window_stack_remove(s_opt_window, false);
   if (s_main_window) window_stack_remove(s_main_window, false);
 }
 
+static void opt_click_up(ClickRecognizerRef r, void *ctx) {
+  (void)r; (void)ctx;
+  if (!s_opt_confirm && s_opt_cursor > 0) s_opt_cursor--;
+  layer_mark_dirty(s_opt_layer);
+}
+
+static void opt_click_down(ClickRecognizerRef r, void *ctx) {
+  (void)r; (void)ctx;
+  if (!s_opt_confirm && s_opt_cursor < OPT_COUNT - 1) s_opt_cursor++;
+  layer_mark_dirty(s_opt_layer);
+}
+
 static void opt_click_select(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
-  if (!s_opt_confirm) {
-    // First press -- show confirmation
-    s_opt_confirm = true;
-    layer_mark_dirty(s_opt_layer);
-  } else {
-    // Confirmed -- delete pet, clear all save data, go to creation
+  if (s_opt_confirm) {
+    // Confirmed delete
     persist_delete(PERSIST_KEY_PET);
     persist_delete(PERSIST_KEY_ADVENTURE);
     persist_delete(PERSIST_KEY_WORKER_STEPS);
     persist_delete(PERSIST_KEY_PENDING_ENCOUNTER);
-
-    // Push creation on top, then defer removal of options+main
     screens_push_creation();
     app_timer_register(50, opt_deferred_remove_both, NULL);
+    return;
+  }
+
+  if (s_opt_cursor == OPT_VIBRATION) {
+    ui_set_vibration(!ui_vibration_enabled());
+    layer_mark_dirty(s_opt_layer);
+  } else if (s_opt_cursor == OPT_DELETE) {
+    s_opt_confirm = true;
+    layer_mark_dirty(s_opt_layer);
+  }
+}
+
+static void opt_click_back(ClickRecognizerRef r, void *ctx) {
+  (void)r; (void)ctx;
+  if (s_opt_confirm) {
+    s_opt_confirm = false;
+    layer_mark_dirty(s_opt_layer);
+  } else {
+    window_stack_pop(true);
   }
 }
 
 static void opt_click_config(void *ctx) {
+  window_single_click_subscribe(BUTTON_ID_UP,     opt_click_up);
+  window_single_click_subscribe(BUTTON_ID_DOWN,   opt_click_down);
   window_single_click_subscribe(BUTTON_ID_SELECT, opt_click_select);
+  window_single_click_subscribe(BUTTON_ID_BACK,   opt_click_back);
 }
 
 static void opt_window_load(Window *window) {

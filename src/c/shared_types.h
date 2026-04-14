@@ -14,6 +14,7 @@
 #define PERSIST_KEY_ADVENTURE     2
 #define PERSIST_KEY_WORKER_STEPS  3
 #define PERSIST_KEY_PENDING_ENCOUNTER 4
+#define PERSIST_KEY_VIBRATION        5  // 0 = off, 1 = on (default on)
 
 #define NUM_ENCOUNTERS 5
 

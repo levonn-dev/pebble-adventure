@@ -34,6 +34,13 @@ GColor ui_draw_menu_row(GContext *ctx, int16_t y, int16_t w, int16_t text_h, boo
 // Keep backlight on for 30 seconds. Call on any user interaction.
 void ui_keep_backlight(void);
 
+// Vibration helpers — respect the user's vibration setting.
+bool ui_vibration_enabled(void);
+void ui_set_vibration(bool enabled);
+void ui_vibe_short(void);
+void ui_vibe_double(void);
+void ui_vibe_long(void);
+
 // Draw biome-specific background within the given area.
 // biome: BiomeType value (0-5). frame: animation frame for moving elements.
 void ui_draw_biome_bg(GContext *ctx, GRect area, uint8_t biome, uint8_t frame);

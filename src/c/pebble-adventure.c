@@ -4,6 +4,7 @@
 #include "screens.h"
 #include "screens/screens_internal.h"
 #include "sprites.h"
+#include "ui.h"
 
 static void worker_message_handler(uint16_t type, AppWorkerMessage *message) {
   screens_on_worker_message(type, message);
@@ -54,7 +55,7 @@ static void init(void) {
           snprintf(detail, sizeof(detail), "No effect");
         }
         adv_queue_popup(title, detail, result.won);
-        vibes_short_pulse();
+        ui_vibe_short();
       }
     }
     persist_delete(PERSIST_KEY_PENDING_ENCOUNTER);

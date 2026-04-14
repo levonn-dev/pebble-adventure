@@ -45,6 +45,23 @@ void ui_draw_battery(GContext *ctx, GRect bounds) {
 }
 
 // ---------------------------------------------------------------------------
+// Vibration
+// ---------------------------------------------------------------------------
+
+bool ui_vibration_enabled(void) {
+  if (!persist_exists(PERSIST_KEY_VIBRATION)) return true;  // default on
+  return persist_read_int(PERSIST_KEY_VIBRATION) != 0;
+}
+
+void ui_set_vibration(bool enabled) {
+  persist_write_int(PERSIST_KEY_VIBRATION, enabled ? 1 : 0);
+}
+
+void ui_vibe_short(void)  { if (ui_vibration_enabled()) vibes_short_pulse(); }
+void ui_vibe_double(void) { if (ui_vibration_enabled()) vibes_double_pulse(); }
+void ui_vibe_long(void)   { if (ui_vibration_enabled()) vibes_long_pulse(); }
+
+// ---------------------------------------------------------------------------
 // Backlight management
 // ---------------------------------------------------------------------------
 

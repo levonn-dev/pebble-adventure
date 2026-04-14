@@ -152,7 +152,7 @@ static void dg_tick(void *ctx) {
         s_dg_rocks[i].y >= ground_y - 20 && s_dg_rocks[i].y <= ground_y) {
       s_dg_rocks[i].active = false;
       s_dg_lives--;
-      vibes_short_pulse();
+      ui_vibe_short();
       if (s_dg_lives == 0) {
         dg_end_game(false);
         return;
