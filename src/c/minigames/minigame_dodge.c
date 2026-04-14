@@ -102,21 +102,14 @@ static void dg_layer_update(Layer *layer, GContext *ctx) {
   graphics_draw_text(ctx, lives_buf, fonts_get_system_font(FONT_KEY_GOTHIC_14),
     GRect(4, 32, w - 8, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
-  // Lane separators
   int16_t ground_y = h - 20;
-  graphics_context_set_stroke_color(ctx, GColorDarkGray);
-  graphics_context_set_stroke_width(ctx, 1);
-  for (int i = 1; i < 3; i++) {
-    int16_t lx = (int16_t)(w * i / 3);
-    graphics_draw_line(ctx, GPoint(lx, 50), GPoint(lx, ground_y));
-  }
 
   // Fox
   int16_t fox_x = dg_lane_x(s_dg_lane, w);
   ui_draw_fox(ctx, GPoint(fox_x, ground_y - 12), FOX_WALK, (uint8_t)(s_dg_ticks / 3));
 
   // Rocks
-  graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorRed, GColorWhite));
+  graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorOrange, GColorWhite));
   for (int i = 0; i < DODGE_MAX_ROCKS; i++) {
     if (s_dg_rocks[i].active) {
       int16_t rx = dg_lane_x(s_dg_rocks[i].lane, w);
@@ -132,17 +125,17 @@ static void dg_tick(void *ctx) {
     return;
   }
 
-  // AGI reduces spawn rate: base every 8 ticks, +1 per 50 AGI
-  uint16_t spawn_interval = 8 + s_dg_agi / 50;
+  // AGI reduces spawn rate: base every 4 ticks, +1 per 100 AGI
+  uint16_t spawn_interval = 4 + s_dg_agi / 100;
   if (s_dg_ticks % spawn_interval == 0) {
     GRect bounds = layer_get_bounds(s_dg_layer);
     dg_spawn_rock(bounds.size.w);
   }
 
-  // Move rocks down
+  // Move rocks down — fast base, AGI slows them
   int16_t ground_y = layer_get_bounds(s_dg_layer).size.h - 20;
-  int16_t rock_speed = 6 - (int16_t)(s_dg_agi / 200);
-  if (rock_speed < 3) rock_speed = 3;
+  int16_t rock_speed = 8 - (int16_t)(s_dg_agi / 100);
+  if (rock_speed < 4) rock_speed = 4;
 
   for (int i = 0; i < DODGE_MAX_ROCKS; i++) {
     if (!s_dg_rocks[i].active) continue;

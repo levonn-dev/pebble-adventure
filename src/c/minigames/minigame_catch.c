@@ -10,7 +10,7 @@
 // ---------------------------------------------------------------------------
 // CATCH MINI-GAME (DEX)
 // ---------------------------------------------------------------------------
-#define CATCH_TICK_MS   80
+#define CATCH_TICK_MS   60
 #define CATCH_GOAL      5
 #define CATCH_MAX_MISS  3
 
@@ -97,8 +97,8 @@ static void ct_layer_update(Layer *layer, GContext *ctx) {
     GRect(4, 24, w - 8, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
   // Catch zone
-  s_ct_catch_zone_h = 20 + (int16_t)(s_ct_dex / 10);
-  if (s_ct_catch_zone_h > 60) s_ct_catch_zone_h = 60;
+  s_ct_catch_zone_h = 12 + (int16_t)(s_ct_dex / 15);
+  if (s_ct_catch_zone_h > 40) s_ct_catch_zone_h = 40;
   s_ct_catch_zone_y = h - 40 - s_ct_catch_zone_h / 2;
 
   GRect zone = GRect(w / 4, s_ct_catch_zone_y, w / 2, s_ct_catch_zone_h);
@@ -129,7 +129,7 @@ static void ct_tick(void *ctx) {
   if (!s_ct_item_active) {
     ct_spawn_item();
   } else {
-    s_ct_item_y += 4;
+    s_ct_item_y += 7;
 
     GRect bounds = layer_get_bounds(s_ct_layer);
     if (s_ct_item_y > bounds.size.h) {
@@ -179,8 +179,8 @@ static void ct_window_load(Window *window) {
   s_ct_dex = pet.dex;
   // Pre-compute catch zone so click handler has valid values from the start
   GRect pre_bounds = layer_get_bounds(window_get_root_layer(window));
-  s_ct_catch_zone_h = 20 + (int16_t)(s_ct_dex / 10);
-  if (s_ct_catch_zone_h > 60) s_ct_catch_zone_h = 60;
+  s_ct_catch_zone_h = 12 + (int16_t)(s_ct_dex / 15);
+  if (s_ct_catch_zone_h > 40) s_ct_catch_zone_h = 40;
   s_ct_catch_zone_y = pre_bounds.size.h - 40 - s_ct_catch_zone_h / 2;
   Layer *root = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(root);
