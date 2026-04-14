@@ -105,12 +105,15 @@ static void effects_plains(GContext *ctx, GRect area, uint8_t tick) {
     graphics_fill_circle(ctx, GPoint(cx, cy), 2);
   }
   // Pollen/seed particles: tiny specks drifting across the middle band.
-  for (uint8_t i = 0; i < 5; i++) {
-    uint16_t x_seed = bg_hash(i, 2);
-    int16_t  px = (int16_t)((x_seed + tick * 3) % area.size.w) + area.origin.x;
-    int16_t  py = area.origin.y + 30 + (int16_t)(bg_hash(i, 3) % (area.size.h - 40));
+  // Skip pollen if the area is too short to contain the middle band.
+  if (area.size.h > 40) {
     graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
-    graphics_draw_pixel(ctx, GPoint(px, py));
+    for (uint8_t i = 0; i < 5; i++) {
+      uint16_t x_seed = bg_hash(i, 2);
+      int16_t  px = (int16_t)((x_seed + tick * 3) % area.size.w) + area.origin.x;
+      int16_t  py = area.origin.y + 30 + (int16_t)(bg_hash(i, 3) % (area.size.h - 40));
+      graphics_draw_pixel(ctx, GPoint(px, py));
+    }
   }
 }
 
@@ -137,7 +140,8 @@ static void effects_water(GContext *ctx, GRect area, uint8_t tick) {
   // Light caustics: thin diagonal bright lines that drift horizontally.
   graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorCeleste, GColorLightGray));
   for (uint8_t i = 0; i < 3; i++) {
-    int16_t cx = (int16_t)(((bg_hash(i, 22) + tick * 2) % (area.size.w + 20)) - 10) + area.origin.x;
+    // Wrap into [0, area.size.w) so caustics stay inside the area bounds.
+    int16_t cx = (int16_t)((bg_hash(i, 22) + tick * 2) % area.size.w) + area.origin.x;
     graphics_draw_line(ctx,
       GPoint(cx,      area.origin.y),
       GPoint(cx + 6,  area.origin.y + area.size.h / 2));
@@ -184,10 +188,13 @@ static void effects_storm(GContext *ctx, GRect area, uint8_t tick) {
     graphics_draw_line(ctx, GPoint(rx, ry), GPoint(rx - 2, ry + 5));
   }
   // Periodic lightning flash — every 20 ticks, flash for one tick.
+  // Small top-band flash (24px) instead of the entire area so the
+  // background and fox remain visible underneath.
   if ((tick % 20) == 0) {
-    // Full-area white flash (dim with alpha if color, solid on B&W)
     graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
-    graphics_fill_rect(ctx, area, 0, GCornerNone);
+    graphics_fill_rect(ctx,
+      GRect(area.origin.x, area.origin.y, area.size.w, 24),
+      0, GCornerNone);
     // Zigzag bolt
     graphics_context_set_stroke_color(ctx, GColorWhite);
     graphics_context_set_stroke_width(ctx, 2);
@@ -197,6 +204,8 @@ static void effects_storm(GContext *ctx, GRect area, uint8_t tick) {
     graphics_draw_line(ctx, GPoint(lx - 4, ly + 10), GPoint(lx + 3, ly + 18));
     graphics_draw_line(ctx, GPoint(lx + 3, ly + 18), GPoint(lx - 2, ly + 28));
   }
+  // Reset stroke width to default so it doesn't leak to later draws.
+  graphics_context_set_stroke_width(ctx, 1);
 }
 
 void backgrounds_draw_effects(GContext *ctx, GRect area, uint8_t biome,
