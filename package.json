@@ -122,6 +122,36 @@
           "type": "png",
           "name": "FOX_LG_WALK_3",
           "file": "images/fox_lg_walk_3.png"
+        },
+        {
+          "type": "png",
+          "name": "BG_PLAINS",
+          "file": "images/backgrounds/bg_plains.png"
+        },
+        {
+          "type": "png",
+          "name": "BG_FOREST",
+          "file": "images/backgrounds/bg_forest.png"
+        },
+        {
+          "type": "png",
+          "name": "BG_WATER",
+          "file": "images/backgrounds/bg_water.png"
+        },
+        {
+          "type": "png",
+          "name": "BG_MOUNTAIN",
+          "file": "images/backgrounds/bg_mountain.png"
+        },
+        {
+          "type": "png",
+          "name": "BG_CAVE",
+          "file": "images/backgrounds/bg_cave.png"
+        },
+        {
+          "type": "png",
+          "name": "BG_STORM",
+          "file": "images/backgrounds/bg_storm.png"
         }
       ]
     }
