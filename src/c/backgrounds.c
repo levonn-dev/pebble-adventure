@@ -83,45 +83,16 @@ static void draw_fallback(GContext *ctx, GRect area, uint8_t biome) {
   graphics_fill_rect(ctx, area, 0, GCornerNone);
 }
 
-void backgrounds_draw(GContext *ctx, GRect area, uint8_t biome, uint16_t scroll_offset) {
+void backgrounds_draw(GContext *ctx, GRect area, uint8_t biome) {
   ensure_loaded(biome);
   if (!s_current_bg) {
     draw_fallback(ctx, area, biome);
     return;
   }
 
-  GBitmap *bg = s_current_bg;
-  GSize img = gbitmap_get_bounds(bg).size;
-
-  // If the image is narrower than the area, nothing to scroll — draw it stretched to fit.
-  int32_t range = (int32_t)img.w - (int32_t)area.size.w;
-  if (range <= 0) {
-    graphics_context_set_compositing_mode(ctx, GCompOpAssign);
-    graphics_draw_bitmap_in_rect(ctx, bg, area);
-    return;
-  }
-
-  // Ping-pong: map the monotonic scroll_offset counter to an oscillating
-  // window x position over [0, range]. The period is 2 * range — during
-  // the first half, x ramps 0 → range; during the second half, x ramps
-  // range → 0. At the endpoints, motion "reverses direction" smoothly.
-  uint32_t period = (uint32_t)range * 2;
-  uint32_t pos    = (uint32_t)scroll_offset % period;
-  int16_t  x      = (int16_t)(pos <= (uint32_t)range ? pos : period - pos);
-
-  // Extract the visible window as a sub-bitmap view (no pixel copy) and
-  // draw it into the area. The sub-bitmap is (areaW × imgH); Pebble will
-  // scale vertically if area.size.h differs from img.h.
-  int16_t sub_h = img.h < area.size.h ? img.h : area.size.h;
-  GBitmap *sub = gbitmap_create_as_sub_bitmap(bg,
-    GRect(x, 0, area.size.w, sub_h));
-  if (sub) {
-    graphics_context_set_compositing_mode(ctx, GCompOpAssign);
-    graphics_draw_bitmap_in_rect(ctx, sub, area);
-    gbitmap_destroy(sub);
-  } else {
-    draw_fallback(ctx, area, biome);
-  }
+  // Draw the bitmap scaled to fill the biome area.
+  graphics_context_set_compositing_mode(ctx, GCompOpAssign);
+  graphics_draw_bitmap_in_rect(ctx, s_current_bg, area);
 }
 
 // ---------------------------------------------------------------------------

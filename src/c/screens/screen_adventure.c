@@ -15,7 +15,6 @@ static Window    *s_adv_window     = NULL;
 Layer     *s_adv_layer      = NULL;
 static AppTimer  *s_adv_anim_timer = NULL;
 static uint8_t    s_adv_fox_frame  = 0;
-static uint16_t   s_adv_bg_scroll  = 0;
 static uint8_t  s_adv_effect_tick = 0;
 Adventure  s_adv_current;
 static Pet        s_adv_pet;
@@ -138,9 +137,9 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
   // Biome background
   int16_t ground_y = h / 2 + 8;
   GRect biome_area = GRect(0, 50, w, ground_y - 50 + (h - ground_y));
-  backgrounds_draw(ctx, biome_area, s_adv_current.segments[seg], s_adv_bg_scroll);
+  backgrounds_draw(ctx, biome_area, s_adv_current.segments[seg]);
   backgrounds_draw_effects(ctx, biome_area, s_adv_current.segments[seg],
-                           s_adv_bg_scroll, s_adv_effect_tick);
+                           0, s_adv_effect_tick);
 
   // Walking fox (large)
   ui_draw_fox_large(ctx, GPoint(w / 2, ground_y - 12), FOX_WALK, s_adv_fox_frame);
@@ -214,9 +213,6 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
 static void adv_anim_callback(void *ctx) {
   s_adv_fox_frame = (s_adv_fox_frame + 1) % 4;
   s_adv_effect_tick++;
-  if (s_adv_current.active) {
-    s_adv_bg_scroll += 4;  // pixels per tick — tune for walking feel
-  }
   layer_mark_dirty(s_adv_layer);
   uint32_t interval = s_adv_current.active ? 300 : 600;
   s_adv_anim_timer = app_timer_register(interval, adv_anim_callback, NULL);
@@ -269,7 +265,6 @@ static void adv_click_down(ClickRecognizerRef r, void *ctx) {
     adventure_save(&adv);
     adventure_load(&s_adv_current);
     pet_load(&s_adv_pet);
-    s_adv_bg_scroll = 0;  // reset scroll for fresh adventure
     layer_mark_dirty(s_adv_layer);
   }
 }
