@@ -16,7 +16,6 @@ static AppTimer  *s_adv_anim_timer = NULL;
 static uint8_t    s_adv_fox_frame  = 0;
 Adventure  s_adv_current;
 static Pet        s_adv_pet;
-static bool       s_adv_show_info  = false;
 // Encounter popup queue
 #define POPUP_QUEUE_MAX 8
 static uint8_t s_adv_popup_count = 0;
@@ -83,6 +82,39 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
   // Time -- always visible top-left
   ui_draw_time(ctx, bounds);
 
+  // --- IDLE MODE: no active adventure ---
+  if (!s_adv_current.active && !adventure_is_complete(&s_adv_current)) {
+    ui_draw_battery(ctx, bounds);
+
+    // Fox idle animation (centered)
+    GPoint fox_center = GPoint(w / 2, h / 2 - 10);
+    ui_draw_fox(ctx, fox_center, FOX_IDLE, s_adv_fox_frame);
+
+    // Name + level
+    char name_buf[20];
+    snprintf(name_buf, sizeof(name_buf), "%s  Lv.%d",
+             s_adv_pet.name, (int)s_adv_pet.level);
+    graphics_context_set_text_color(ctx, GColorWhite);
+    graphics_draw_text(ctx, name_buf,
+      fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
+      GRect(0, h / 2 + 10, w, 18),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+    // XP bar
+    ui_draw_progress_bar(ctx,
+      GRect(8, h / 2 + 30, w - 16, 8),
+      s_adv_pet.xp, s_adv_pet.xp_next_level);
+
+    // Button hints
+    graphics_context_set_text_color(ctx, GColorLightGray);
+    graphics_draw_text(ctx, "UP:stats  SEL:menu  DN:adventure",
+      fonts_get_system_font(FONT_KEY_GOTHIC_14),
+      GRect(0, h - 18, w, 16),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    return;
+  }
+
+  // --- COMPLETE MODE ---
   if (adventure_is_complete(&s_adv_current)) {
     graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
     graphics_draw_text(ctx, "ADVENTURE DONE!",
@@ -97,6 +129,7 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
     return;
   }
 
+  // --- ACTIVE MODE: adventure in progress ---
   uint8_t seg = s_adv_current.current_segment;
 
   // Segment counter top-right
@@ -146,35 +179,10 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
 
   // Button hints
   graphics_context_set_text_color(ctx, GColorLightGray);
-  graphics_draw_text(ctx, "UP:info  DN:games",
+  graphics_draw_text(ctx, "UP:stats  SEL:menu  DN:games",
     fonts_get_system_font(FONT_KEY_GOTHIC_14),
     GRect(0, h - 18, w, 16),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
-
-  // Info overlay (toggled by Up) -- uses cached s_adv_pet, loaded on window_load
-  if (s_adv_show_info) {
-    GRect info = GRect(8, 50, w - 16, 68);
-    graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorDarkGray, GColorBlack));
-    graphics_fill_rect(ctx, info, 4, GCornersAll);
-    graphics_context_set_stroke_color(ctx, GColorWhite);
-    graphics_draw_round_rect(ctx, info, 4);
-
-    char ibuf[32];
-    snprintf(ibuf, sizeof(ibuf), "%s  Lv.%d", s_adv_pet.name, (int)s_adv_pet.level);
-    graphics_context_set_text_color(ctx, GColorWhite);
-    graphics_draw_text(ctx, ibuf, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
-      GRect(12, 53, w - 24, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
-
-    snprintf(ibuf, sizeof(ibuf), "XP %lu/%lu", (unsigned long)s_adv_pet.xp, (unsigned long)s_adv_pet.xp_next_level);
-    graphics_draw_text(ctx, ibuf, fonts_get_system_font(FONT_KEY_GOTHIC_14),
-      GRect(12, 70, w - 24, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
-
-    snprintf(ibuf, sizeof(ibuf), "S%d D%d A%d V%d I%d L%d",
-             (int)s_adv_pet.str, (int)s_adv_pet.dex, (int)s_adv_pet.agi,
-             (int)s_adv_pet.vit, (int)s_adv_pet.intel, (int)s_adv_pet.luk);
-    graphics_draw_text(ctx, ibuf, fonts_get_system_font(FONT_KEY_GOTHIC_14),
-      GRect(12, 88, w - 24, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
-  }
 
   // Encounter popup queue
   if (s_adv_popup_index < s_adv_popup_count) {
@@ -184,18 +192,15 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
     graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
     graphics_draw_round_rect(ctx, popup, 4);
 
-    // Fox reaction
     ui_draw_fox(ctx, GPoint(16, h / 2 - 12),
                 s_adv_popups[s_adv_popup_index].won ? FOX_HAPPY : FOX_SAD, 0);
 
-    // Encounter name
     graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
     graphics_draw_text(ctx, s_adv_popups[s_adv_popup_index].name,
       fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
       GRect(36, h / 2 - 30, w - 44, 16),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
-    // Won/Lost
     graphics_context_set_text_color(ctx,
       s_adv_popups[s_adv_popup_index].won
         ? PBL_IF_COLOR_ELSE(GColorGreen, GColorWhite)
@@ -206,14 +211,12 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
       GRect(36, h / 2 - 14, w - 44, 16),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
-    // Effect
     graphics_context_set_text_color(ctx, GColorWhite);
     graphics_draw_text(ctx, s_adv_popups[s_adv_popup_index].effect,
       fonts_get_system_font(FONT_KEY_GOTHIC_14),
       GRect(36, h / 2 + 2, w - 44, 16),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
-    // Queue indicator
     if (s_adv_popup_count > 1) {
       char qbuf[8];
       snprintf(qbuf, sizeof(qbuf), "%d/%d", (int)(s_adv_popup_index + 1), (int)s_adv_popup_count);
@@ -228,10 +231,9 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
 
 static void adv_anim_callback(void *ctx) {
   s_adv_fox_frame = (s_adv_fox_frame + 1) % 4;
-  // popup stays until button press — no auto-dismiss
-  // Don't poll persist here -- s_adv_current is refreshed by screens_on_worker_message
   layer_mark_dirty(s_adv_layer);
-  s_adv_anim_timer = app_timer_register(300, adv_anim_callback, NULL);
+  uint32_t interval = s_adv_current.active ? 300 : 600;
+  s_adv_anim_timer = app_timer_register(interval, adv_anim_callback, NULL);
 }
 
 // Advance popup queue or dismiss
@@ -252,8 +254,7 @@ static bool adv_dismiss_popup(void) {
 static void adv_click_up(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
   if (adv_dismiss_popup()) return;
-  s_adv_show_info = !s_adv_show_info;
-  layer_mark_dirty(s_adv_layer);
+  screens_push_stats();
 }
 
 static void adv_click_select(ClickRecognizerRef r, void *ctx) {
@@ -262,14 +263,28 @@ static void adv_click_select(ClickRecognizerRef r, void *ctx) {
   if (adventure_is_complete(&s_adv_current)) {
     window_stack_pop(true);
     screens_push_results(s_adv_current.total_xp_earned, s_adv_current.encounters_total);
+  } else {
+    screens_push_menu();
   }
 }
 
 static void adv_click_down(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
   if (adv_dismiss_popup()) return;
-  if (!adventure_is_complete(&s_adv_current)) {
-    minigames_push_selection();
+  if (s_adv_current.active) {
+    if (!adventure_is_complete(&s_adv_current)) {
+      minigames_push_selection();
+    }
+  } else {
+    // Start new adventure
+    Pet pet;
+    pet_load(&pet);
+    Adventure adv;
+    adventure_init(&adv, &pet);
+    adventure_save(&adv);
+    adventure_load(&s_adv_current);
+    pet_load(&s_adv_pet);
+    layer_mark_dirty(s_adv_layer);
   }
 }
 
@@ -304,7 +319,6 @@ static void adv_window_unload(Window *window) {
 }
 
 void screens_push_adventure(void) {
-  s_adv_show_info = false;
   s_adv_window = window_create();
   window_set_background_color(s_adv_window, GColorBlack);
   window_set_window_handlers(s_adv_window, (WindowHandlers) {
