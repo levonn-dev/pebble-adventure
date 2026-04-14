@@ -44,140 +44,16 @@ void ui_draw_battery(GContext *ctx, GRect bounds) {
 }
 
 // ---------------------------------------------------------------------------
-// Fox sprite — procedural multi-state drawing
+// Fox sprite — PNG resource drawing
 // ---------------------------------------------------------------------------
 
-static void fox_draw_body(GContext *ctx, GPoint c, int8_t body_dy) {
-  // Body oval
-  graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorOrange, GColorWhite));
-  graphics_fill_rect(ctx, GRect(c.x - 7, c.y + body_dy - 3, 14, 8), 3, GCornersAll);
-
-  // White chest patch (color only)
-  #ifdef PBL_COLOR
-  graphics_context_set_fill_color(ctx, GColorWhite);
-  graphics_fill_rect(ctx, GRect(c.x - 3, c.y + body_dy - 1, 6, 5), 2, GCornersAll);
-  #endif
-
-  // Head
-  graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorOrange, GColorWhite));
-  graphics_fill_circle(ctx, GPoint(c.x + 4, c.y + body_dy - 6), 5);
-
-  // Snout
-  graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorMelon, GColorWhite));
-  graphics_fill_circle(ctx, GPoint(c.x + 7, c.y + body_dy - 5), 2);
-
-  // Nose
-  graphics_context_set_fill_color(ctx, GColorBlack);
-  graphics_fill_circle(ctx, GPoint(c.x + 9, c.y + body_dy - 5), 1);
-
-  // Eyes
-  graphics_context_set_fill_color(ctx, GColorBlack);
-  graphics_fill_circle(ctx, GPoint(c.x + 3, c.y + body_dy - 8), 1);
-}
-
-static void fox_draw_ears(GContext *ctx, GPoint c, int8_t body_dy, int8_t ear_dy) {
-  graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorOrange, GColorWhite));
-  // Left ear
-  graphics_fill_circle(ctx, GPoint(c.x + 1, c.y + body_dy - 11 + ear_dy), 2);
-  // Right ear
-  graphics_fill_circle(ctx, GPoint(c.x + 6, c.y + body_dy - 11 + ear_dy), 2);
-
-  // Inner ear (color only)
-  #ifdef PBL_COLOR
-  graphics_context_set_fill_color(ctx, GColorMelon);
-  graphics_fill_circle(ctx, GPoint(c.x + 1, c.y + body_dy - 11 + ear_dy), 1);
-  graphics_fill_circle(ctx, GPoint(c.x + 6, c.y + body_dy - 11 + ear_dy), 1);
-  #endif
-}
-
-static void fox_draw_legs(GContext *ctx, GPoint c, int8_t body_dy,
-                           int8_t l1, int8_t l2, int8_t l3, int8_t l4) {
-  graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorOrange, GColorWhite));
-  graphics_context_set_stroke_width(ctx, 2);
-  // Front legs
-  graphics_draw_line(ctx, GPoint(c.x + 3, c.y + body_dy + 4),
-                          GPoint(c.x + 3, c.y + body_dy + 8 + l1));
-  graphics_draw_line(ctx, GPoint(c.x + 6, c.y + body_dy + 4),
-                          GPoint(c.x + 6, c.y + body_dy + 8 + l2));
-  // Back legs
-  graphics_draw_line(ctx, GPoint(c.x - 3, c.y + body_dy + 4),
-                          GPoint(c.x - 3, c.y + body_dy + 8 + l3));
-  graphics_draw_line(ctx, GPoint(c.x - 6, c.y + body_dy + 4),
-                          GPoint(c.x - 6, c.y + body_dy + 8 + l4));
-}
-
-static void fox_draw_tail(GContext *ctx, GPoint c, int8_t body_dy,
-                           int8_t tail_dy, int8_t tail_dx) {
-  graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorOrange, GColorWhite));
-  graphics_context_set_stroke_width(ctx, 3);
-  graphics_draw_line(ctx, GPoint(c.x - 7, c.y + body_dy),
-                          GPoint(c.x - 12 + tail_dx, c.y + body_dy - 4 + tail_dy));
-  // White tail tip (color only)
-  #ifdef PBL_COLOR
-  graphics_context_set_fill_color(ctx, GColorWhite);
-  graphics_fill_circle(ctx, GPoint(c.x - 12 + tail_dx, c.y + body_dy - 4 + tail_dy), 1);
-  #endif
-}
-
 void ui_draw_fox(GContext *ctx, GPoint center, FoxState state, uint8_t frame) {
-  // Try PNG sprite first — falls back to procedural if not loaded
   GBitmap *sprite = sprites_get_fox(state, frame);
   if (sprite) {
     GRect dest = GRect(center.x - 12, center.y - 12, 24, 24);
     graphics_context_set_compositing_mode(ctx, GCompOpSet);
     graphics_draw_bitmap_in_rect(ctx, sprite, dest);
-    return;
   }
-
-  // Procedural fallback
-  int8_t body_dy = 0;
-  int8_t ear_dy = 0;
-  int8_t tail_dy = 0;
-  int8_t tail_dx = 0;
-  int8_t l1 = 0, l2 = 0, l3 = 0, l4 = 0;
-
-  switch (state) {
-    case FOX_IDLE:
-      ear_dy = (frame % 2 == 0) ? 0 : -1;
-      tail_dy = (frame % 2 == 0) ? 0 : 1;
-      break;
-
-    case FOX_WALK:
-      body_dy = (frame % 2 == 0) ? 0 : -1;
-      switch (frame % 4) {
-        case 0: l1 = -2; l2 = 2; l3 = 2; l4 = -2; break;
-        case 1: l1 = 0;  l2 = 0; l3 = 0; l4 = 0;  break;
-        case 2: l1 = 2;  l2 = -2; l3 = -2; l4 = 2; break;
-        case 3: l1 = 0;  l2 = 0; l3 = 0; l4 = 0;  break;
-      }
-      tail_dy = (frame % 2 == 0) ? -1 : 1;
-      break;
-
-    case FOX_HAPPY:
-      body_dy = -2;
-      ear_dy = -2;
-      tail_dy = -6;
-      tail_dx = 2;
-      break;
-
-    case FOX_SAD:
-      body_dy = 2;
-      ear_dy = 3;
-      tail_dy = 4;
-      break;
-
-    case FOX_DIG:
-      body_dy = 1;
-      l1 = (frame % 2 == 0) ? -3 : 1;
-      l2 = (frame % 2 == 0) ? 1 : -3;
-      tail_dy = -2;
-      break;
-  }
-
-  fox_draw_tail(ctx, center, body_dy, tail_dy, tail_dx);
-  fox_draw_body(ctx, center, body_dy);
-  fox_draw_ears(ctx, center, body_dy, ear_dy);
-  fox_draw_legs(ctx, center, body_dy, l1, l2, l3, l4);
 }
 
 // ---------------------------------------------------------------------------
