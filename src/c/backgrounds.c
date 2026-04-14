@@ -221,31 +221,34 @@ static void effects_forest(GContext *ctx, GRect area, uint8_t tick) {
 
 static void effects_water(GContext *ctx, GRect area, uint8_t tick) {
   // Rising bubble clusters: 3 groups of 3-6 bubbles each, rising upward.
-  // Each group has a base x position and the individual bubbles are
-  // offset slightly from that base for a clustered look.
+  // Spread across the full width. Bubbles stay within the biome area bounds.
   graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorCeleste, GColorWhite));
   for (uint8_t g = 0; g < 3; g++) {
-    int16_t base_x = (int16_t)(bg_hash(g, 20) % area.size.w) + area.origin.x;
+    // Spread groups evenly across the width (thirds) with some variation
+    int16_t base_x = area.origin.x + (int16_t)(area.size.w * g / 3)
+                   + (int16_t)(bg_hash(g, 20) % (area.size.w / 3));
     uint8_t count = 3 + (bg_hash(g, 24) % 4);  // 3-6 bubbles per group
     for (uint8_t b = 0; b < count; b++) {
       int16_t ox = (int16_t)(bg_hash(g * 7 + b, 25) % 7) - 3;  // -3..+3 px offset
       int16_t oy = (int16_t)(bg_hash(g * 7 + b, 26) % 10);     // 0..9 px stagger
       int16_t bx = base_x + ox;
-      int16_t by = area.origin.y + area.size.h - 4
-                 - (int16_t)((bg_hash(g * 7 + b, 21) + tick * 4) % area.size.h) - oy;
+      // Rise from bottom, clamped to stay within the biome area
+      int16_t rise = (int16_t)((bg_hash(g * 7 + b, 21) + tick * 4) % area.size.h);
+      int16_t by = area.origin.y + area.size.h - 4 - rise - oy;
+      if (by < area.origin.y) continue;  // don't draw above biome area
       graphics_draw_circle(ctx, GPoint(bx, by), 1);
     }
   }
 
-  // Light caustics: thin diagonal bright lines leaning right-to-left,
-  // drifting right-to-left across the scene.
+  // Light caustics: diagonal bright lines spanning full biome height,
+  // leaning and drifting right-to-left.
   graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorCeleste, GColorLightGray));
   for (uint8_t i = 0; i < 3; i++) {
     int16_t cx = (int16_t)(((uint32_t)bg_hash(i, 22) + (uint32_t)area.size.w * 256
                             - (uint32_t)(tick * 2)) % area.size.w) + area.origin.x;
     graphics_draw_line(ctx,
       GPoint(cx,      area.origin.y),
-      GPoint(cx - 6,  area.origin.y + area.size.h / 2));
+      GPoint(cx - 8,  area.origin.y + area.size.h));
   }
 }
 
