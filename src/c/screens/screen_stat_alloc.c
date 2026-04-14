@@ -35,26 +35,31 @@ static void sa_layer_update(Layer *layer, GContext *ctx) {
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
   ui_draw_time(ctx, bounds);
 
-  // Layout: compute row height to fit the screen
-  // Need: title(18) + points(14) + 6 stats + Done + hint(14) + margins
+  // Layout: two header lines (title + points), then stats, done, hint
   int16_t top_y = 22;        // after time
+  int16_t title_h = 16;
+  int16_t pts_h = 14;
   int16_t hint_h = 14;
-  int16_t avail = h - top_y - hint_h - 4;  // space for title+points+stats+done
-  int16_t header_h = 32;     // title + points
-  int16_t stat_area = avail - header_h;
-  int16_t row_h = stat_area / (NUM_STATS + 1);  // +1 for Done row
+  int16_t header_h = title_h + pts_h + 2;  // title + points + gap
+  int16_t stats_y = top_y + header_h;
+  int16_t avail = h - stats_y - hint_h - 2;
+  int16_t row_h = avail / (NUM_STATS + 1);
   if (row_h > 18) row_h = 18;
   if (row_h < 12) row_h = 12;
-  int16_t stats_y = top_y + header_h;
 
-  // Title + points on one line to save space on small screens
-  char title_buf[32];
-  snprintf(title_buf, sizeof(title_buf), "%s  Pts:%d",
-           s_sa_title ? s_sa_title : "STATS", (int)s_sa_pet.upgrade_points);
+  // Title
   graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorGreen, GColorWhite));
-  graphics_draw_text(ctx, title_buf,
+  graphics_draw_text(ctx, s_sa_title ? s_sa_title : "STATS",
     fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
-    GRect(0, top_y, w, 16),
+    GRect(0, top_y, w, title_h),
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+  // Points
+  char pts_buf[16];
+  snprintf(pts_buf, sizeof(pts_buf), "Points: %d", (int)s_sa_pet.upgrade_points);
+  graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
+  graphics_draw_text(ctx, pts_buf, fonts_get_system_font(FONT_KEY_GOTHIC_14),
+    GRect(0, top_y + title_h, w, pts_h),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
   // Stat rows
@@ -69,15 +74,17 @@ static void sa_layer_update(Layer *layer, GContext *ctx) {
     uint16_t val = pet_get_stat(&s_sa_pet, i);
     char sbuf[24];
     if (s_sa_alloc[i] > 0) {
-      snprintf(sbuf, sizeof(sbuf), "%s:%d(+%d)",
+      snprintf(sbuf, sizeof(sbuf), "%s:%d (+%d)",
                s_stat_names[i], (int)val, (int)s_sa_alloc[i]);
     } else {
       snprintf(sbuf, sizeof(sbuf), "%s:%d", s_stat_names[i], (int)val);
     }
     graphics_context_set_text_color(ctx,
       sel ? PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite) : GColorWhite);
+    // Center text vertically within the row highlight
+    int16_t text_y = row_y + (row_h - 14) / 2;
     graphics_draw_text(ctx, sbuf, fonts_get_system_font(FONT_KEY_GOTHIC_14),
-      GRect(4, row_y + 1, w - 8, row_h - 2),
+      GRect(4, text_y, w - 8, 14),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   }
 
@@ -86,16 +93,17 @@ static void sa_layer_update(Layer *layer, GContext *ctx) {
   bool done_sel = (s_sa_row == NUM_STATS);
   graphics_context_set_text_color(ctx,
     done_sel ? PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite) : GColorLightGray);
+  int16_t done_text_y = done_y + (row_h - 14) / 2;
   graphics_draw_text(ctx, done_sel ? "> DONE <" : "  DONE  ",
     fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
-    GRect(0, done_y + 1, w, row_h),
+    GRect(0, done_text_y, w, 14),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
   // Hint at bottom
   graphics_context_set_text_color(ctx, GColorLightGray);
   graphics_draw_text(ctx, "HOLD SEL: stat info",
     fonts_get_system_font(FONT_KEY_GOTHIC_14),
-    GRect(0, h - hint_h - 2, w, hint_h),
+    GRect(0, h - hint_h - 1, w, hint_h),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
   // Help overlay
