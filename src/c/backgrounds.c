@@ -268,41 +268,37 @@ static void effects_mountain(GContext *ctx, GRect area, uint8_t tick) {
 
 static void effects_cave(GContext *ctx, GRect area, uint8_t tick) {
   int16_t ground = area.origin.y + area.size.h - bg_ground_offset(BIOME_CAVE);
-  int16_t drip_top = area.origin.y + 20;       // drips start within top 20px of bg
-  int16_t sparkle_top = area.origin.y + 20;     // sparkles start at drip lower bound
-  int16_t sparkle_bottom = ground + 5;          // sparkles extend 5px below ground
-  int16_t sparkle_range = sparkle_bottom - sparkle_top;
-  int16_t drip_range = ground - drip_top;       // full fall distance
+  int16_t top_20 = area.origin.y + 20;
+  int16_t sparkle_range = ground - 5 - top_20;  // 20px from top to 5px above ground
+  int16_t drip_range = ground - top_20;          // 20px from top to ground
 
-  // Twinkling crystal sparkles — random positions between 20px from top
-  // and 5px below the ground line.
+  // Twinkling crystal sparkles — 8 sparkles, random positions between
+  // 20px from biome top and 5px above ground line. Flicker on/off.
   if (sparkle_range > 0) {
     graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorCeleste, GColorWhite));
-    for (uint8_t i = 0; i < 5; i++) {
-      if (((tick + i * 5) % 8) < 3) {
+    for (uint8_t i = 0; i < 8; i++) {
+      if (((tick + i * 3) % 6) < 3) {  // visible ~50% of the time
         int16_t cx = (int16_t)(bg_hash(i, 40) % area.size.w) + area.origin.x;
-        int16_t cy = sparkle_top + (int16_t)(bg_hash(i, 41) % sparkle_range);
+        int16_t cy = top_20 + (int16_t)(bg_hash(i, 41) % sparkle_range);
         graphics_fill_circle(ctx, GPoint(cx, cy), 1);
       }
     }
   }
 
-  // Water drips falling from the ceiling (top 20px) down to the ground.
-  // 3 drips active, each at a random x, cycling at different rates.
+  // Water drips — 2 drips, each picks a random x at the top of the biome
+  // and falls straight down to the ground line.
   if (drip_range > 0) {
     graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorCeleste, GColorWhite));
-    for (uint8_t d = 0; d < 3; d++) {
-      // Each drip has its own cycle length for varied timing
-      uint8_t cycle = 14 + (bg_hash(d, 43) % 8);  // 14-21 ticks per cycle
+    for (uint8_t d = 0; d < 2; d++) {
+      uint8_t cycle = 20 + (bg_hash(d, 43) % 10);  // 20-29 ticks per cycle
       uint8_t phase = (tick + bg_hash(d, 44)) % cycle;
-      int16_t t_frac = (int16_t)(phase * drip_range / cycle);  // progress 0..drip_range
-      int16_t dx = (int16_t)(bg_hash(d + (uint16_t)(tick / cycle) * 3, 42) % area.size.w) + area.origin.x;
-      int16_t dy = drip_top + t_frac;
-      int16_t streak_end = dy + 8;
+      // x is fixed for the entire fall (random per cycle)
+      int16_t dx = (int16_t)(bg_hash(d + (uint16_t)(tick / cycle) * 2, 42) % area.size.w) + area.origin.x;
+      // y falls from top_20 straight down to ground
+      int16_t dy = top_20 + (int16_t)((uint32_t)phase * drip_range / cycle);
+      int16_t streak_end = dy + 6;
       if (streak_end > ground) streak_end = ground;
-      if (dy < ground) {
-        graphics_draw_line(ctx, GPoint(dx, dy), GPoint(dx, streak_end));
-      }
+      graphics_draw_line(ctx, GPoint(dx, dy), GPoint(dx, streak_end));
     }
   }
 }
