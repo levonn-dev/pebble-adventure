@@ -267,21 +267,31 @@ static void effects_mountain(GContext *ctx, GRect area, uint8_t tick) {
 }
 
 static void effects_cave(GContext *ctx, GRect area, uint8_t tick) {
-  // Twinkling crystal sparkles: a few pixels that flicker on/off based on tick.
-  graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorCeleste, GColorWhite));
+  // Twinkling crystal sparkles in the middle-to-lower area where the
+  // cave scenery actually is (image is bottom-aligned).
+  graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorCeleste, GColorWhite));
   for (uint8_t i = 0; i < 5; i++) {
     if (((tick + i * 5) % 8) < 3) {
       int16_t cx = (int16_t)(bg_hash(i, 40) % area.size.w) + area.origin.x;
-      int16_t cy = (int16_t)(bg_hash(i, 41) % (area.size.h / 2)) + area.origin.y;
-      graphics_draw_pixel(ctx, GPoint(cx, cy));
+      // Place sparkles in the lower 2/3 of the area
+      int16_t cy = area.origin.y + area.size.h / 3
+                 + (int16_t)(bg_hash(i, 41) % (area.size.h * 2 / 3));
+      graphics_fill_circle(ctx, GPoint(cx, cy), 1);
     }
   }
-  // Occasional water drip — a single vertical streak in a different column each tick.
-  if ((tick % 6) == 0) {
-    int16_t dx = (int16_t)(bg_hash(tick, 42) % area.size.w) + area.origin.x;
-    int16_t dy = area.origin.y + 4;
-    graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorCeleste, GColorWhite));
-    graphics_draw_line(ctx, GPoint(dx, dy), GPoint(dx, dy + 6));
+
+  // Water drips falling from the ceiling. Two drip columns active at a
+  // time, animated downward. Each drip is a short vertical streak that
+  // falls from the upper area downward over several ticks.
+  graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorCeleste, GColorWhite));
+  for (uint8_t d = 0; d < 2; d++) {
+    // Each drip restarts every 16 ticks, staggered by 8 ticks between the two
+    uint8_t phase = (tick + d * 8) % 16;
+    int16_t dx = (int16_t)(bg_hash(d + (tick / 16) * 2, 42) % area.size.w) + area.origin.x;
+    int16_t dy = area.origin.y + area.size.h / 4 + (int16_t)(phase * 4);
+    if (dy + 8 < area.origin.y + area.size.h) {
+      graphics_draw_line(ctx, GPoint(dx, dy), GPoint(dx, dy + 8));
+    }
   }
 }
 
