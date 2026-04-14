@@ -235,6 +235,14 @@ static void main_click_config(void *ctx) {
   window_single_click_subscribe(BUTTON_ID_SELECT, main_click_select);
 }
 
+static void main_window_appear(Window *window) {
+  // Refresh state when returning from adventure/options/stat alloc
+  pet_load(&s_main_pet);
+  Adventure adv;
+  s_main_has_active_adv = adventure_load(&adv) && adv.active;
+  if (s_main_layer) layer_mark_dirty(s_main_layer);
+}
+
 static void main_window_load(Window *window) {
   pet_load(&s_main_pet);
   Adventure adv;
@@ -265,6 +273,7 @@ void screens_push_main(void) {
   window_set_background_color(s_main_window, GColorBlack);
   window_set_window_handlers(s_main_window, (WindowHandlers) {
     .load   = main_window_load,
+    .appear = main_window_appear,
     .unload = main_window_unload
   });
   window_stack_push(s_main_window, true);
