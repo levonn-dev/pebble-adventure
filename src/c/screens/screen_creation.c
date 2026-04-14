@@ -307,8 +307,13 @@ static void cr_click_back(ClickRecognizerRef r, void *ctx) {
 static void cr_long_select(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
   if (s_cr_phase == 0) {
+    // Trim trailing spaces
     uint8_t len = (uint8_t)strlen(s_cr_name);
-    if (len == 0) return;
+    while (len > 0 && s_cr_name[len - 1] == ' ') {
+      s_cr_name[--len] = '\0';
+    }
+    if (len == 0) return;  // require at least 1 non-space character
+    s_cr_cursor = len;
     // Long-press Select → show name confirmation
     s_cr_phase = 1;
     layer_mark_dirty(s_cr_layer);
