@@ -13,6 +13,9 @@
 #define PERSIST_KEY_PET           1
 #define PERSIST_KEY_ADVENTURE     2
 #define PERSIST_KEY_WORKER_STEPS  3
+#define PERSIST_KEY_PENDING_ENCOUNTER 4
+
+#define NUM_ENCOUNTERS 5
 
 // --- Stat index constants ---
 #define STAT_IDX_STR  0

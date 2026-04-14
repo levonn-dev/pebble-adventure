@@ -123,3 +123,15 @@ uint8_t adventure_segment_progress_pct(const Adventure *adv) {
 bool adventure_is_complete(const Adventure *adv) {
   return !adv->active && adv->num_segments > 0;
 }
+
+void adventure_add_progress_pct(Adventure *adv, int8_t percent) {
+  if (!adv->active || adv->current_segment >= adv->num_segments) return;
+  uint8_t seg = adv->current_segment;
+  int32_t change = (int32_t)adv->segment_length[seg] * percent / 100;
+  int32_t new_val = (int32_t)adv->segment_progress[seg] + change;
+  if (new_val < 0) new_val = 0;
+  if ((uint32_t)new_val >= adv->segment_length[seg]) {
+    new_val = (int32_t)(adv->segment_length[seg] - 1);
+  }
+  adv->segment_progress[seg] = (uint32_t)new_val;
+}

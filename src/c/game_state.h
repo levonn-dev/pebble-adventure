@@ -37,3 +37,5 @@ uint8_t adventure_segment_progress_pct(const Adventure *adv);
 
 // True when all segments are done (active == false and num_segments > 0).
 bool adventure_is_complete(const Adventure *adv);
+
+void adventure_add_progress_pct(Adventure *adv, int8_t percent);
