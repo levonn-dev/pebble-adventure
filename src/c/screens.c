@@ -230,7 +230,118 @@ void screens_push_creation(void) {
   });
   window_stack_push(s_cr_window, true);
 }
-void screens_push_main(void)                                      { /* Task 10 */ }
+// ---------------------------------------------------------------------------
+// SCREEN_MAIN
+// ---------------------------------------------------------------------------
+static Window   *s_main_window     = NULL;
+static Layer    *s_main_layer      = NULL;
+static AppTimer *s_main_anim_timer = NULL;
+static uint8_t   s_main_fox_frame  = 0;
+static Pet       s_main_pet;
+
+static void main_layer_update(Layer *layer, GContext *ctx) {
+  GRect bounds = layer_get_bounds(layer);
+  int16_t w = bounds.size.w;
+  int16_t h = bounds.size.h;
+
+  graphics_context_set_fill_color(ctx, GColorBlack);
+  graphics_fill_rect(ctx, bounds, 0, GCornerNone);
+
+  ui_draw_time(ctx, bounds);
+  ui_draw_battery(ctx, bounds);
+
+  // Fox in upper quarter
+  GPoint fox_center = GPoint(w / 2, h / 4 + 4);
+  ui_draw_fox_placeholder(ctx, fox_center, s_main_fox_frame);
+
+  // Name + level
+  char name_buf[20];
+  snprintf(name_buf, sizeof(name_buf), "%s  Lv.%d",
+           s_main_pet.name, (int)s_main_pet.level);
+  graphics_context_set_text_color(ctx, GColorWhite);
+  graphics_draw_text(ctx, name_buf,
+    fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
+    GRect(0, h / 4 + 20, w, 18),
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+  // XP bar
+  ui_draw_progress_bar(ctx,
+    GRect(8, h / 4 + 40, w - 16, 8),
+    s_main_pet.xp, s_main_pet.xp_next_level);
+
+  // Stats — 2 columns
+  static const char *labels[NUM_STATS] = { "STR", "DEX", "AGI", "VIT", "INT", "LUK" };
+  int16_t stats_top = h / 4 + 54;
+  for (int i = 0; i < NUM_STATS; i++) {
+    int16_t col_x = (i % 2 == 0) ? 4 : w / 2 + 4;
+    int16_t row_y = stats_top + (int16_t)(i / 2) * 17;
+    char sbuf[12];
+    snprintf(sbuf, sizeof(sbuf), "%s:%d", labels[i], (int)pet_get_stat(&s_main_pet, i));
+    graphics_context_set_text_color(ctx, GColorWhite);
+    graphics_draw_text(ctx, sbuf,
+      fonts_get_system_font(FONT_KEY_GOTHIC_14),
+      GRect(col_x, row_y, w / 2 - 6, 16),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+  }
+
+  // Bottom action hint
+  Adventure adv;
+  bool has_active = adventure_load(&adv) && adv.active;
+  graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
+  graphics_draw_text(ctx, has_active ? "SELECT: Resume" : "SELECT: Adventure",
+    fonts_get_system_font(FONT_KEY_GOTHIC_14),
+    GRect(0, h - 18, w, 16),
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+}
+
+static void main_anim_callback(void *ctx) {
+  s_main_fox_frame = (s_main_fox_frame + 1) % 4;
+  layer_mark_dirty(s_main_layer);
+  s_main_anim_timer = app_timer_register(600, main_anim_callback, NULL);
+}
+
+static void main_click_select(ClickRecognizerRef r, void *ctx) {
+  (void)r; (void)ctx;
+  Adventure adv;
+  bool has_active = adventure_load(&adv) && adv.active;
+  if (!has_active) {
+    pet_load(&s_main_pet);
+    adventure_init(&adv, &s_main_pet);
+    adventure_save(&adv);
+  }
+  screens_push_adventure();
+}
+
+static void main_click_config(void *ctx) {
+  window_single_click_subscribe(BUTTON_ID_SELECT, main_click_select);
+}
+
+static void main_window_load(Window *window) {
+  pet_load(&s_main_pet);
+  Layer *root = window_get_root_layer(window);
+  GRect bounds = layer_get_bounds(root);
+  s_main_layer = layer_create(bounds);
+  layer_set_update_proc(s_main_layer, main_layer_update);
+  layer_add_child(root, s_main_layer);
+  window_set_click_config_provider(window, main_click_config);
+  s_main_anim_timer = app_timer_register(600, main_anim_callback, NULL);
+}
+
+static void main_window_unload(Window *window) {
+  if (s_main_anim_timer) { app_timer_cancel(s_main_anim_timer); s_main_anim_timer = NULL; }
+  layer_destroy(s_main_layer); s_main_layer = NULL;
+  window_destroy(s_main_window); s_main_window = NULL;
+}
+
+void screens_push_main(void) {
+  s_main_window = window_create();
+  window_set_background_color(s_main_window, GColorBlack);
+  window_set_window_handlers(s_main_window, (WindowHandlers) {
+    .load   = main_window_load,
+    .unload = main_window_unload
+  });
+  window_stack_push(s_main_window, true);
+}
 void screens_push_adventure(void)                                 { /* Task 11 */ }
 void screens_push_results(uint32_t xp, uint8_t enc)               { (void)xp; (void)enc; /* Task 12 */ }
 void screens_push_levelup(Pet *pet)                               { (void)pet; /* Task 12 */ }
