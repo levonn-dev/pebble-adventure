@@ -131,7 +131,7 @@ static int16_t bg_ground_offset(uint8_t biome) {
     case BIOME_WATER:    return 22;
     case BIOME_MOUNTAIN: return 18;
     case BIOME_CAVE:     return 18;
-    case BIOME_STORM:    return 28;
+    case BIOME_STORM:    return 22;
     default:             return 20;
   }
 }
@@ -228,33 +228,43 @@ static void effects_cave(GContext *ctx, GRect area, uint8_t tick) {
 }
 
 static void effects_storm(GContext *ctx, GRect area, uint8_t tick) {
-  // Dense diagonal rain streaks across the full area. Positions are seeded
-  // per index and offset by tick so they appear to fall.
+  // Dense diagonal rain streaks falling right-to-left (wind blowing left).
   graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorCeleste, GColorWhite));
   graphics_context_set_stroke_width(ctx, 1);
   for (uint8_t i = 0; i < 30; i++) {
     int16_t rx = (int16_t)((bg_hash(i, 50) + tick * 3) % area.size.w) + area.origin.x;
     int16_t ry = (int16_t)((bg_hash(i, 51) + tick * 6) % area.size.h) + area.origin.y;
-    graphics_draw_line(ctx, GPoint(rx, ry), GPoint(rx - 2, ry + 5));
+    graphics_draw_line(ctx, GPoint(rx, ry), GPoint(rx + 2, ry + 5));
   }
-  // Periodic lightning flash — every 20 ticks, flash for one tick.
-  // Small top-band flash (24px) instead of the entire area so the
-  // background and fox remain visible underneath.
-  if ((tick % 20) == 0) {
-    graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
-    graphics_fill_rect(ctx,
-      GRect(area.origin.x, area.origin.y, area.size.w, 24),
-      0, GCornerNone);
-    // Zigzag bolt
+
+  // Lightning — strikes every ~25 ticks, visible for 2 ticks.
+  // The bolt position varies per cycle so it doesn't always hit the same spot.
+  uint8_t cycle = tick % 25;
+  if (cycle < 2) {
+    // Bolt x position varies by which cycle we're in (tick / 25 as seed)
+    uint16_t bolt_seed = bg_hash((uint16_t)(tick / 25), 55);
+    int16_t bx = area.origin.x + 20 + (int16_t)(bolt_seed % (area.size.w - 40));
+    int16_t by = area.origin.y;
+
+    // Draw the bolt as a jagged multi-segment line from top downward
     graphics_context_set_stroke_color(ctx, GColorWhite);
-    graphics_context_set_stroke_width(ctx, 2);
-    int16_t lx = area.origin.x + area.size.w / 2;
-    int16_t ly = area.origin.y;
-    graphics_draw_line(ctx, GPoint(lx,     ly),      GPoint(lx - 4, ly + 10));
-    graphics_draw_line(ctx, GPoint(lx - 4, ly + 10), GPoint(lx + 3, ly + 18));
-    graphics_draw_line(ctx, GPoint(lx + 3, ly + 18), GPoint(lx - 2, ly + 28));
+    graphics_context_set_stroke_width(ctx, 1);
+
+    int16_t x = bx, y = by;
+    for (int seg = 0; seg < 5; seg++) {
+      int16_t dx = (int16_t)((bg_hash(bolt_seed + seg, 56) % 11) - 5);  // -5..+5
+      int16_t dy = (int16_t)(8 + bg_hash(bolt_seed + seg, 57) % 6);     // 8..13
+      int16_t nx = x + dx, ny = y + dy;
+      graphics_draw_line(ctx, GPoint(x, y), GPoint(nx, ny));
+      x = nx; y = ny;
+    }
+
+    // On the first tick of the strike, flash a bright highlight around the bolt origin
+    if (cycle == 0) {
+      graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorWhite, GColorWhite));
+      graphics_fill_circle(ctx, GPoint(bx, by + 4), 3);
+    }
   }
-  // Reset stroke width to default so it doesn't leak to later draws.
   graphics_context_set_stroke_width(ctx, 1);
 }
 
