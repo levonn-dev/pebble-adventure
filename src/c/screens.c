@@ -289,11 +289,16 @@ static void main_layer_update(Layer *layer, GContext *ctx) {
       GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   }
 
-  // Bottom action hint — uses cached state, refreshed on window_load and worker messages
+  // Bottom action hints
   graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
-  graphics_draw_text(ctx, s_main_has_active_adv ? "SELECT: Resume" : "SELECT: Adventure",
+  graphics_draw_text(ctx, s_main_has_active_adv ? "SEL: Resume" : "SEL: Adventure",
     fonts_get_system_font(FONT_KEY_GOTHIC_14),
-    GRect(0, h - 18, w, 16),
+    GRect(0, h - 18, w / 2, 16),
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+  graphics_context_set_text_color(ctx, GColorLightGray);
+  graphics_draw_text(ctx, "UP: Options",
+    fonts_get_system_font(FONT_KEY_GOTHIC_14),
+    GRect(w / 2, h - 18, w / 2, 16),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 }
 
@@ -315,7 +320,134 @@ static void main_click_select(ClickRecognizerRef r, void *ctx) {
   screens_push_adventure();
 }
 
+// ---------------------------------------------------------------------------
+// OPTIONS MENU (pushed from main screen Up button)
+// ---------------------------------------------------------------------------
+static Window  *s_opt_window  = NULL;
+static Layer   *s_opt_layer   = NULL;
+static uint8_t  s_opt_cursor  = 0;   // 0 = Delete Pet, (add more later)
+static bool     s_opt_confirm = false;
+
+#define OPT_COUNT 1
+
+static void opt_layer_update(Layer *layer, GContext *ctx) {
+  GRect bounds = layer_get_bounds(layer);
+  int16_t w = bounds.size.w;
+  int16_t h = bounds.size.h;
+
+  graphics_context_set_fill_color(ctx, GColorBlack);
+  graphics_fill_rect(ctx, bounds, 0, GCornerNone);
+  ui_draw_time(ctx, bounds);
+
+  graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
+  graphics_draw_text(ctx, "OPTIONS",
+    fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
+    GRect(0, 26, w, 22),
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+  if (s_opt_confirm) {
+    // Confirmation screen
+    graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorRed, GColorWhite));
+    graphics_draw_text(ctx, "DELETE FOX?",
+      fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
+      GRect(0, h / 2 - 28, w, 22),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+    char name_buf[20];
+    snprintf(name_buf, sizeof(name_buf), "\"%s\" Lv.%d", s_main_pet.name, (int)s_main_pet.level);
+    graphics_context_set_text_color(ctx, GColorWhite);
+    graphics_draw_text(ctx, name_buf,
+      fonts_get_system_font(FONT_KEY_GOTHIC_14),
+      GRect(0, h / 2 - 4, w, 16),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+    graphics_draw_text(ctx, "This cannot be undone!",
+      fonts_get_system_font(FONT_KEY_GOTHIC_14),
+      GRect(0, h / 2 + 14, w, 16),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+    graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorRed, GColorWhite));
+    graphics_draw_text(ctx, "SELECT: Delete",
+      fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
+      GRect(0, h - 36, w, 16),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    graphics_context_set_text_color(ctx, GColorLightGray);
+    graphics_draw_text(ctx, "BACK: Cancel",
+      fonts_get_system_font(FONT_KEY_GOTHIC_14),
+      GRect(0, h - 18, w, 16),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+  } else {
+    // Menu items
+    int16_t row_y = 60;
+    graphics_context_set_fill_color(ctx, GColorDarkGray);
+    graphics_fill_rect(ctx, GRect(0, row_y - 1, w, 20), 0, GCornerNone);
+    graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorRed, GColorWhite));
+    graphics_draw_text(ctx, "Delete Pet",
+      fonts_get_system_font(FONT_KEY_GOTHIC_18),
+      GRect(8, row_y, w - 16, 20),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+
+    graphics_context_set_text_color(ctx, GColorLightGray);
+    graphics_draw_text(ctx, "BACK: Return",
+      fonts_get_system_font(FONT_KEY_GOTHIC_14),
+      GRect(0, h - 18, w, 16),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+  }
+}
+
+static void opt_click_select(ClickRecognizerRef r, void *ctx) {
+  (void)r; (void)ctx;
+  if (!s_opt_confirm) {
+    // First press — show confirmation
+    s_opt_confirm = true;
+    layer_mark_dirty(s_opt_layer);
+  } else {
+    // Confirmed — delete pet, clear all save data, go to creation
+    persist_delete(PERSIST_KEY_PET);
+    persist_delete(PERSIST_KEY_ADVENTURE);
+    persist_delete(PERSIST_KEY_WORKER_STEPS);
+    persist_delete(PERSIST_KEY_PENDING_ENCOUNTER);
+
+    // Push creation, then remove options and main
+    screens_push_creation();
+    window_stack_remove(s_opt_window, false);
+    window_stack_remove(s_main_window, false);
+  }
+}
+
+static void opt_click_config(void *ctx) {
+  window_single_click_subscribe(BUTTON_ID_SELECT, opt_click_select);
+}
+
+static void opt_window_load(Window *window) {
+  Layer *root = window_get_root_layer(window);
+  GRect bounds = layer_get_bounds(root);
+  s_opt_layer = layer_create(bounds);
+  layer_set_update_proc(s_opt_layer, opt_layer_update);
+  layer_add_child(root, s_opt_layer);
+  window_set_click_config_provider(window, opt_click_config);
+}
+
+static void opt_window_unload(Window *window) {
+  layer_destroy(s_opt_layer); s_opt_layer = NULL;
+  window_destroy(s_opt_window); s_opt_window = NULL;
+}
+
+static void main_click_up(ClickRecognizerRef r, void *ctx) {
+  (void)r; (void)ctx;
+  s_opt_confirm = false;
+  s_opt_cursor = 0;
+  s_opt_window = window_create();
+  window_set_background_color(s_opt_window, GColorBlack);
+  window_set_window_handlers(s_opt_window, (WindowHandlers) {
+    .load   = opt_window_load,
+    .unload = opt_window_unload
+  });
+  window_stack_push(s_opt_window, true);
+}
+
 static void main_click_config(void *ctx) {
+  window_single_click_subscribe(BUTTON_ID_UP,     main_click_up);
   window_single_click_subscribe(BUTTON_ID_SELECT, main_click_select);
 }
 
