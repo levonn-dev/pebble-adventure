@@ -2,7 +2,9 @@
 
 // ---------------------------------------------------------------------------
 // Struct copies — MUST match src/c/shared_types.h exactly.
-// If you change shared_types.h, update these too.
+// Workers cannot include app headers, so these are duplicated here.
+// If you change Pet or Adventure in shared_types.h, update these too.
+// COUPLING: WorkerMsgType values must match the enum in src/c/screens.h.
 // ---------------------------------------------------------------------------
 #define MAX_SEGMENTS  8
 #define PERSIST_KEY_PET           1
@@ -46,7 +48,9 @@ static uint32_t s_steps_in_window = 0;  // steps since last encounter check
 
 // ---------------------------------------------------------------------------
 // Inline progress logic — mirrors adventure_apply_steps in game_state.c.
-// Biome difficulty = biome index + 1 (PLAINS=1 ... STORM=6).
+// COUPLING: XP formula assumes difficulty = biome_index + 1 (PLAINS=1 ... STORM=6).
+// If biome difficulty values in game_state.c's s_biomes[] ever diverge from
+// this pattern, this formula must be updated to match.
 // Returns 0=steps only, 1=segment done, 2=adventure done.
 // ---------------------------------------------------------------------------
 static uint8_t worker_apply_steps(WorkerAdventure *adv, uint32_t steps) {

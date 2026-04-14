@@ -1,4 +1,5 @@
 #include "events.h"
+#include "game_state.h"
 #include "stats.h"
 #include <stdlib.h>
 
@@ -44,17 +45,20 @@ EncounterResult encounter_resolve(uint8_t encounter_id, const Pet *pet) {
 
 void encounter_apply(EncounterResult *result, Adventure *adv) {
   if (result->progress_change != 0) {
-    if (!adv->active || adv->current_segment >= adv->num_segments) return;
-    uint8_t seg = adv->current_segment;
-    int32_t change = (int32_t)adv->segment_length[seg] * result->progress_change / 100;
-    int32_t new_val = (int32_t)adv->segment_progress[seg] + change;
-    if (new_val < 0) new_val = 0;
-    if ((uint32_t)new_val >= adv->segment_length[seg]) {
-      new_val = (int32_t)(adv->segment_length[seg] - 1);
-    }
-    adv->segment_progress[seg] = (uint32_t)new_val;
+    adventure_add_progress_pct(adv, result->progress_change);
   }
   if (result->bonus_xp > 0) {
     adv->total_xp_earned += result->bonus_xp;
+  }
+}
+
+void encounter_format_detail(const EncounterResult *result, char *buf, size_t buf_size) {
+  if (result->progress_change != 0) {
+    snprintf(buf, buf_size, "%s%d%% progress",
+             result->progress_change > 0 ? "+" : "", (int)result->progress_change);
+  } else if (result->bonus_xp > 0) {
+    snprintf(buf, buf_size, "+%lu XP", (unsigned long)result->bonus_xp);
+  } else {
+    snprintf(buf, buf_size, "No effect");
   }
 }

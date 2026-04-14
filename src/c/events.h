@@ -20,12 +20,10 @@ typedef struct {
   uint32_t bonus_xp;
 } EncounterResult;
 
-typedef enum {
-  ENCOUNTER_STAT_CHECK,
-  ENCOUNTER_BATTLE,
-  ENCOUNTER_NPC,
-} EncounterType;
-
 const EncounterDef *encounter_get_def(uint8_t id);
 EncounterResult encounter_resolve(uint8_t encounter_id, const Pet *pet);
 void encounter_apply(EncounterResult *result, Adventure *adv);
+
+// Format an encounter result into a human-readable detail string.
+// buf must be at least 20 bytes. Writes e.g. "+10% progress", "+30 XP", or "No effect".
+void encounter_format_detail(const EncounterResult *result, char *buf, size_t buf_size);

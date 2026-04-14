@@ -170,7 +170,7 @@ static void opt_click_select(ClickRecognizerRef r, void *ctx) {
     Adventure adv;
     if (adventure_load(&adv) && adv.active && adv.current_segment < adv.num_segments) {
       adv.segment_progress[adv.current_segment] = adv.segment_length[adv.current_segment];
-      uint8_t diff = adv.segments[adv.current_segment] + 1;
+      uint8_t diff = biome_get_config((BiomeType)adv.segments[adv.current_segment])->difficulty;
       adv.total_xp_earned += (uint32_t)(adv.current_segment * 50) + (uint32_t)(diff * 30);
       adv.current_segment++;
       if (adv.current_segment >= adv.num_segments) {
@@ -197,14 +197,7 @@ static void opt_click_select(ClickRecognizerRef r, void *ctx) {
       adv.encounters_total++;
       adventure_save(&adv);
       char detail[20];
-      if (result.progress_change != 0) {
-        snprintf(detail, sizeof(detail), "%s%d%% progress",
-                 result.progress_change > 0 ? "+" : "", (int)result.progress_change);
-      } else if (result.bonus_xp > 0) {
-        snprintf(detail, sizeof(detail), "+%lu XP", (unsigned long)result.bonus_xp);
-      } else {
-        snprintf(detail, sizeof(detail), "No effect");
-      }
+      encounter_format_detail(&result, detail, sizeof(detail));
       adv_queue_popup(result.encounter_name, detail, result.won);
       ui_vibe_short();
     }

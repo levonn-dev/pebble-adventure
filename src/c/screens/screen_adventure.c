@@ -26,10 +26,6 @@ static struct {
   bool won;
 } s_adv_popups[POPUP_QUEUE_MAX];
 
-static const char *s_biome_names[NUM_BIOMES] = {
-  "Plains", "Forest", "Water", "Mountain", "Cave", "Storm"
-};
-
 void adv_queue_popup(const char *title, const char *detail, bool won) {
   if (s_adv_popup_count < POPUP_QUEUE_MAX) {
     uint8_t i = s_adv_popup_count;
@@ -57,14 +53,7 @@ void adv_resolve_pending_encounter(void) {
 
   // Format and queue popup
   char detail[20];
-  if (result.progress_change != 0) {
-    snprintf(detail, sizeof(detail), "%s%d%% progress",
-             result.progress_change > 0 ? "+" : "", (int)result.progress_change);
-  } else if (result.bonus_xp > 0) {
-    snprintf(detail, sizeof(detail), "+%lu XP", (unsigned long)result.bonus_xp);
-  } else {
-    snprintf(detail, sizeof(detail), "No effect");
-  }
+  encounter_format_detail(&result, detail, sizeof(detail));
   adv_queue_popup(result.encounter_name, detail, result.won);
 
   persist_delete(PERSIST_KEY_PENDING_ENCOUNTER);

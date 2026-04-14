@@ -43,14 +43,7 @@ static void init(void) {
         adventure_save(&enc_adv);
         // Queue popup so user sees what happened
         char detail[20];
-        if (result.progress_change != 0) {
-          snprintf(detail, sizeof(detail), "%s%d%% progress",
-                   result.progress_change > 0 ? "+" : "", (int)result.progress_change);
-        } else if (result.bonus_xp > 0) {
-          snprintf(detail, sizeof(detail), "+%lu XP", (unsigned long)result.bonus_xp);
-        } else {
-          snprintf(detail, sizeof(detail), "No effect");
-        }
+        encounter_format_detail(&result, detail, sizeof(detail));
         adv_queue_popup(result.encounter_name, detail, result.won);
         ui_vibe_short();
       }

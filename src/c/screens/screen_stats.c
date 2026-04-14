@@ -44,13 +44,12 @@ static void st_layer_update(Layer *layer, GContext *ctx) {
     s_st_pet.xp, s_st_pet.xp_next_level);
 
   // Stats -- 2 columns
-  static const char *labels[NUM_STATS] = { "STR", "DEX", "AGI", "VIT", "INT", "LUK" };
   int16_t stats_top = h / 4 + 54;
   for (int i = 0; i < NUM_STATS; i++) {
     int16_t col_x = (i % 2 == 0) ? 4 : w / 2 + 4;
     int16_t row_y = stats_top + (int16_t)(i / 2) * 17;
     char sbuf[12];
-    snprintf(sbuf, sizeof(sbuf), "%s:%d", labels[i], (int)pet_get_stat(&s_st_pet, i));
+    snprintf(sbuf, sizeof(sbuf), "%s:%d", s_stat_names[i], (int)pet_get_stat(&s_st_pet, i));
     graphics_context_set_text_color(ctx, GColorWhite);
     graphics_draw_text(ctx, sbuf,
       fonts_get_system_font(FONT_KEY_GOTHIC_14),
