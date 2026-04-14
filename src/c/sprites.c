@@ -50,3 +50,37 @@ GBitmap *sprites_get_fox(FoxState state, uint8_t frame) {
     default:        return NULL;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Large sprites — loaded on demand by adventure screen
+// ---------------------------------------------------------------------------
+#define LG_IDLE_FRAMES 4
+#define LG_WALK_FRAMES 4
+
+static GBitmap *s_fox_lg_idle[LG_IDLE_FRAMES] = { NULL };
+static GBitmap *s_fox_lg_walk[LG_WALK_FRAMES] = { NULL };
+
+void sprites_load_large(void) {
+  s_fox_lg_idle[0] = gbitmap_create_with_resource(RESOURCE_ID_FOX_LG_IDLE_0);
+  s_fox_lg_idle[1] = gbitmap_create_with_resource(RESOURCE_ID_FOX_LG_IDLE_1);
+  s_fox_lg_idle[2] = gbitmap_create_with_resource(RESOURCE_ID_FOX_LG_IDLE_2);
+  s_fox_lg_idle[3] = gbitmap_create_with_resource(RESOURCE_ID_FOX_LG_IDLE_3);
+
+  s_fox_lg_walk[0] = gbitmap_create_with_resource(RESOURCE_ID_FOX_LG_WALK_0);
+  s_fox_lg_walk[1] = gbitmap_create_with_resource(RESOURCE_ID_FOX_LG_WALK_1);
+  s_fox_lg_walk[2] = gbitmap_create_with_resource(RESOURCE_ID_FOX_LG_WALK_2);
+  s_fox_lg_walk[3] = gbitmap_create_with_resource(RESOURCE_ID_FOX_LG_WALK_3);
+}
+
+void sprites_unload_large(void) {
+  for (int i = 0; i < LG_IDLE_FRAMES; i++) { if (s_fox_lg_idle[i]) { gbitmap_destroy(s_fox_lg_idle[i]); s_fox_lg_idle[i] = NULL; } }
+  for (int i = 0; i < LG_WALK_FRAMES; i++) { if (s_fox_lg_walk[i]) { gbitmap_destroy(s_fox_lg_walk[i]); s_fox_lg_walk[i] = NULL; } }
+}
+
+GBitmap *sprites_get_fox_large(FoxState state, uint8_t frame) {
+  switch (state) {
+    case FOX_IDLE:  return s_fox_lg_idle[frame % LG_IDLE_FRAMES];
+    case FOX_WALK:  return s_fox_lg_walk[frame % LG_WALK_FRAMES];
+    default:        return NULL;
+  }
+}

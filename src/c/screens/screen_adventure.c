@@ -4,6 +4,7 @@
 #include "../events.h"
 #include "../stats.h"
 #include "../ui.h"
+#include "../sprites.h"
 #include "../minigames.h"
 #include <pebble.h>
 
@@ -85,9 +86,9 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
 
   // --- IDLE MODE: no active adventure ---
   if (!s_adv_current.active && !adventure_is_complete(&s_adv_current)) {
-    // Fox idle animation (centered)
-    GPoint fox_center = GPoint(w / 2, h / 2 - 10);
-    ui_draw_fox(ctx, fox_center, FOX_IDLE, s_adv_fox_frame);
+    // Fox idle animation (centered, large)
+    GPoint fox_center = GPoint(w / 2, h / 2 - 16);
+    ui_draw_fox_large(ctx, fox_center, FOX_IDLE, s_adv_fox_frame);
 
     // Name + level
     char name_buf[20];
@@ -149,8 +150,8 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
   GRect biome_area = GRect(0, 50, w, ground_y - 50 + (h - ground_y));
   ui_draw_biome_bg(ctx, biome_area, s_adv_current.segments[seg], s_adv_fox_frame);
 
-  // Walking fox
-  ui_draw_fox(ctx, GPoint(w / 3, ground_y - 12), FOX_WALK, s_adv_fox_frame);
+  // Walking fox (large)
+  ui_draw_fox_large(ctx, GPoint(w / 2, ground_y - 12), FOX_WALK, s_adv_fox_frame);
 
   // Dark strip behind bottom text for readability on B&W
   graphics_context_set_fill_color(ctx, GColorBlack);
@@ -250,7 +251,6 @@ static void adv_click_select(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
   if (adv_dismiss_popup()) return;
   if (adventure_is_complete(&s_adv_current)) {
-    window_stack_pop(true);
     screens_push_results(s_adv_current.total_xp_earned, s_adv_current.encounters_total);
   } else {
     screens_push_menu();
@@ -292,6 +292,7 @@ static void adv_window_appear(Window *window) {
 static void adv_window_load(Window *window) {
   adventure_load(&s_adv_current);
   pet_load(&s_adv_pet);
+  sprites_load_large();
   Layer *root = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(root);
   s_adv_layer = layer_create(bounds);
@@ -303,6 +304,7 @@ static void adv_window_load(Window *window) {
 
 static void adv_window_unload(Window *window) {
   if (s_adv_anim_timer) { app_timer_cancel(s_adv_anim_timer); s_adv_anim_timer = NULL; }
+  sprites_unload_large();
   layer_destroy(s_adv_layer); s_adv_layer = NULL;
   window_destroy(s_adv_window); s_adv_window = NULL;
 }

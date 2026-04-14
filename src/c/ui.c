@@ -107,6 +107,16 @@ void ui_draw_fox(GContext *ctx, GPoint center, FoxState state, uint8_t frame) {
   }
 }
 
+void ui_draw_fox_large(GContext *ctx, GPoint center, FoxState state, uint8_t frame) {
+  GBitmap *sprite = sprites_get_fox_large(state, frame);
+  if (sprite) {
+    GSize size = gbitmap_get_bounds(sprite).size;
+    GRect dest = GRect(center.x - size.w / 2, center.y - size.h / 2, size.w, size.h);
+    graphics_context_set_compositing_mode(ctx, GCompOpSet);
+    graphics_draw_bitmap_in_rect(ctx, sprite, dest);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Biome backgrounds — procedural per-biome
 // ---------------------------------------------------------------------------

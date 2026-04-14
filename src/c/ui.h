@@ -25,6 +25,9 @@ typedef enum {
 // Draw fox sprite centered at 'center' in the given state.
 void ui_draw_fox(GContext *ctx, GPoint center, FoxState state, uint8_t frame);
 
+// Draw large fox sprite centered at 'center'. Uses large sprite set.
+void ui_draw_fox_large(GContext *ctx, GPoint center, FoxState state, uint8_t frame);
+
 // Draw a menu row with optional selection highlight.
 // If selected: inverted colors (white bg on B&W, dark gray on color).
 // Adds 2px descender padding below text_h for chars like g, j, y.

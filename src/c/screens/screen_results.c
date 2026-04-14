@@ -66,8 +66,8 @@ static void res_layer_update(Layer *layer, GContext *ctx) {
 static void res_click_select(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
   if (s_res_lvls > 0) {
+    window_stack_pop(false);  // remove results first
     screens_push_levelup(&s_res_pet);
-    window_stack_pop(false);  // remove results, levelup is on top of adventure
   } else {
     window_stack_pop(true);  // back to adventure screen
   }

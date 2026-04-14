@@ -26,7 +26,15 @@
         { "type": "png", "name": "FOX_HAPPY_0", "file": "images/fox_happy_0.png" },
         { "type": "png", "name": "FOX_SAD_0",   "file": "images/fox_sad_0.png" },
         { "type": "png", "name": "FOX_DIG_0",   "file": "images/fox_dig_0.png" },
-        { "type": "png", "name": "FOX_DIG_1",   "file": "images/fox_dig_1.png" }
+        { "type": "png", "name": "FOX_DIG_1",   "file": "images/fox_dig_1.png" },
+        { "type": "png", "name": "FOX_LG_IDLE_0", "file": "images/fox_lg_idle_0.png" },
+        { "type": "png", "name": "FOX_LG_IDLE_1", "file": "images/fox_lg_idle_1.png" },
+        { "type": "png", "name": "FOX_LG_IDLE_2", "file": "images/fox_lg_idle_2.png" },
+        { "type": "png", "name": "FOX_LG_IDLE_3", "file": "images/fox_lg_idle_3.png" },
+        { "type": "png", "name": "FOX_LG_WALK_0", "file": "images/fox_lg_walk_0.png" },
+        { "type": "png", "name": "FOX_LG_WALK_1", "file": "images/fox_lg_walk_1.png" },
+        { "type": "png", "name": "FOX_LG_WALK_2", "file": "images/fox_lg_walk_2.png" },
+        { "type": "png", "name": "FOX_LG_WALK_3", "file": "images/fox_lg_walk_3.png" }
       ]
     }
   }
