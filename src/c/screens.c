@@ -169,8 +169,9 @@ static void cr_click_select(ClickRecognizerRef r, void *ctx) {
       Adventure blank;
       memset(&blank, 0, sizeof(Adventure));
       adventure_save(&blank);
-      window_stack_pop(true);
+      // Push main BEFORE removing creation — popping the only window exits the app
       screens_push_main();
+      window_stack_remove(s_cr_window, false);
       if (!app_worker_is_running()) app_worker_launch();
     }
   }
