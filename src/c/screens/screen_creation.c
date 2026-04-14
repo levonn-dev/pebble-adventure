@@ -245,12 +245,10 @@ static void cr_deferred_remove(void *data) {
 static void cr_click_select(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
   if (s_cr_phase == 0) {
-    // Select advances to next character position
-    uint8_t len = (uint8_t)strlen(s_cr_name);
-    if (len == 0) return;  // need at least 1 char
+    // Select advances cursor only if current position has a character
+    if (s_cr_name[s_cr_cursor] == '\0') return;  // must type something first
     if (s_cr_cursor < 10) {
       s_cr_cursor++;
-      // Cursor is now past the last char — ready for new char input
     }
   } else if (s_cr_phase == 1) {
     // Confirm name → go to stat allocation
@@ -280,9 +278,17 @@ static void cr_click_select(ClickRecognizerRef r, void *ctx) {
 static void cr_click_back(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
   if (s_cr_phase == 0) {
-    if (s_cr_cursor > 0) {
+    uint8_t len = (uint8_t)strlen(s_cr_name);
+    if (s_cr_cursor > len && s_cr_cursor > 0) {
+      // Cursor is past the end (after Select advance) — just move back
+      s_cr_cursor--;
+    } else if (s_cr_cursor > 0) {
+      // Delete character behind cursor
       s_cr_cursor--;
       memset(&s_cr_name[s_cr_cursor], 0, sizeof(s_cr_name) - s_cr_cursor);
+    } else if (len > 0) {
+      // At position 0 with a character — clear it
+      memset(s_cr_name, 0, sizeof(s_cr_name));
     }
   } else if (s_cr_phase == 1) {
     // Back from confirm → return to name entry at end of name
@@ -323,7 +329,7 @@ static void cr_click_config(void *ctx) {
   window_single_click_subscribe(BUTTON_ID_UP,    cr_click_up);
   window_single_click_subscribe(BUTTON_ID_DOWN,  cr_click_down);
   window_single_click_subscribe(BUTTON_ID_SELECT, cr_click_select);
-  window_single_repeating_click_subscribe(BUTTON_ID_BACK, 0, cr_click_back);
+  window_single_click_subscribe(BUTTON_ID_BACK, cr_click_back);
   window_long_click_subscribe(BUTTON_ID_UP,     500, cr_long_up, NULL);
   window_long_click_subscribe(BUTTON_ID_DOWN,   500, cr_long_down, NULL);
   window_long_click_subscribe(BUTTON_ID_SELECT, 500, cr_long_select, NULL);
