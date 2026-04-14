@@ -10,7 +10,7 @@
 
 static void lu_done(Pet *pet) {
   pet_save(pet);
-  window_stack_pop(true);  // pop stat alloc
+  // stat alloc pops itself after calling this callback
   screens_push_main();
 }
 

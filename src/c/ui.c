@@ -4,6 +4,7 @@
 #include <pebble.h>
 
 void ui_draw_time(GContext *ctx, GRect bounds) {
+  light_enable_interaction();
   time_t now = time(NULL);
   struct tm *t = localtime(&now);
   char buf[6];
@@ -41,6 +42,23 @@ void ui_draw_battery(GContext *ctx, GRect bounds) {
     fonts_get_system_font(FONT_KEY_GOTHIC_14),
     GRect(bounds.size.w - 36, 4, 34, 16),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentRight, NULL);
+}
+
+// ---------------------------------------------------------------------------
+// Backlight management
+// ---------------------------------------------------------------------------
+
+static AppTimer *s_backlight_timer = NULL;
+
+static void backlight_off_callback(void *data) {
+  light_enable(false);
+  s_backlight_timer = NULL;
+}
+
+void ui_keep_backlight(void) {
+  light_enable(true);
+  if (s_backlight_timer) app_timer_cancel(s_backlight_timer);
+  s_backlight_timer = app_timer_register(30000, backlight_off_callback, NULL);
 }
 
 // ---------------------------------------------------------------------------

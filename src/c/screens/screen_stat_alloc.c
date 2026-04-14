@@ -145,8 +145,11 @@ static void sa_click_select(ClickRecognizerRef r, void *ctx) {
       s_sa_alloc[s_sa_row]++;
     }
   } else {
-    // Done — invoke callback with the modified pet
-    if (s_sa_done_cb) s_sa_done_cb(&s_sa_pet);
+    // Done — invoke callback, then pop this window
+    StatAllocDoneCallback cb = s_sa_done_cb;
+    Pet pet_copy = s_sa_pet;
+    if (cb) cb(&pet_copy);
+    window_stack_pop(true);
   }
   layer_mark_dirty(s_sa_layer);
 }

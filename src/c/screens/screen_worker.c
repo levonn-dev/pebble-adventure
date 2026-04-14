@@ -13,6 +13,8 @@ void screens_on_worker_message(uint16_t type, AppWorkerMessage *message) {
   if (type == WORKER_MSG_ENCOUNTER) {
     adv_resolve_pending_encounter();
   } else if (type == WORKER_MSG_ADVENTURE_DONE) {
-    vibes_short_pulse();
+    vibes_long_pulse();
+  } else if (type == WORKER_MSG_SEGMENT_DONE) {
+    vibes_double_pulse();
   }
 }

@@ -116,6 +116,10 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
   // Walking fox
   ui_draw_fox(ctx, GPoint(w / 3, ground_y - 12), FOX_WALK, s_adv_fox_frame);
 
+  // Dark strip behind bottom text for readability on B&W
+  graphics_context_set_fill_color(ctx, GColorBlack);
+  graphics_fill_rect(ctx, GRect(0, h - 36, w, 36), 0, GCornerNone);
+
   // Steps today
   uint32_t steps = (uint32_t)health_service_sum_today(HealthMetricStepCount);
   char steps_buf[20];

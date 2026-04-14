@@ -80,8 +80,8 @@ static uint8_t worker_apply_steps(WorkerAdventure *adv, uint32_t steps) {
 // Health handler — fires on movement updates
 // ---------------------------------------------------------------------------
 static void health_handler(HealthEventType event, void *context) {
-  if (event != HealthEventMovementUpdate && event != HealthEventSignificantUpdate) return;
-
+  (void)context;
+  // Accept any health event that might indicate step changes
   uint32_t current = (uint32_t)health_service_sum_today(HealthMetricStepCount);
   if (current == s_last_steps) return;
 

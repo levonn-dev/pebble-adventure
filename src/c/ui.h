@@ -31,6 +31,9 @@ void ui_draw_fox(GContext *ctx, GPoint center, FoxState state, uint8_t frame);
 // Returns the text color to use (so caller can draw text after).
 GColor ui_draw_menu_row(GContext *ctx, int16_t y, int16_t w, int16_t text_h, bool selected);
 
+// Keep backlight on for 30 seconds. Call on any user interaction.
+void ui_keep_backlight(void);
+
 // Draw biome-specific background within the given area.
 // biome: BiomeType value (0-5). frame: animation frame for moving elements.
 void ui_draw_biome_bg(GContext *ctx, GRect area, uint8_t biome, uint8_t frame);
