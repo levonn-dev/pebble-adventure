@@ -169,11 +169,6 @@ void ui_draw_fox(GContext *ctx, GPoint center, FoxState state, uint8_t frame) {
   fox_draw_legs(ctx, center, body_dy, l1, l2, l3, l4);
 }
 
-// Backward compatibility — remove after all callers are updated
-void ui_draw_fox_placeholder(GContext *ctx, GPoint center, uint8_t frame) {
-  ui_draw_fox(ctx, center, FOX_WALK, frame);
-}
-
 // ---------------------------------------------------------------------------
 // Biome backgrounds — procedural per-biome
 // ---------------------------------------------------------------------------

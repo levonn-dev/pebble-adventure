@@ -25,9 +25,6 @@ typedef enum {
 // Draw fox sprite centered at 'center' in the given state.
 void ui_draw_fox(GContext *ctx, GPoint center, FoxState state, uint8_t frame);
 
-// Deprecated — use ui_draw_fox instead. Remove after all callers updated.
-void ui_draw_fox_placeholder(GContext *ctx, GPoint center, uint8_t frame);
-
 // Draw biome-specific background within the given area.
 // biome: BiomeType value (0-5). frame: animation frame for moving elements.
 void ui_draw_biome_bg(GContext *ctx, GRect area, uint8_t biome, uint8_t frame);
