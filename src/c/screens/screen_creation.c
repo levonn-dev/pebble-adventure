@@ -197,6 +197,11 @@ static void cr_click_down(ClickRecognizerRef r, void *ctx) {
   layer_mark_dirty(s_cr_layer);
 }
 
+static void cr_deferred_remove(void *data) {
+  Window *w = (Window *)data;
+  if (w) window_stack_remove(w, false);
+}
+
 static void cr_click_select(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
   if (s_cr_phase == 0) {
@@ -222,10 +227,9 @@ static void cr_click_select(ClickRecognizerRef r, void *ctx) {
       memset(&blank, 0, sizeof(Adventure));
       adventure_save(&blank);
       if (!app_worker_is_running()) app_worker_launch();
-      // Push main on top of creation, then pop creation underneath.
-      // We must push first -- an empty stack exits the app.
+      // Push main on top, then schedule creation removal after click handler exits
       screens_push_main();
-      window_stack_remove(s_cr_window, false);
+      app_timer_register(50, cr_deferred_remove, s_cr_window);
     }
   }
   layer_mark_dirty(s_cr_layer);
@@ -236,7 +240,8 @@ static void cr_click_back(ClickRecognizerRef r, void *ctx) {
   if (s_cr_phase == 0) {
     if (s_cr_cursor > 0) {
       s_cr_cursor--;
-      s_cr_name[s_cr_cursor] = '\0';
+      // Clear from cursor onward to avoid stale characters
+      memset(&s_cr_name[s_cr_cursor], 0, sizeof(s_cr_name) - s_cr_cursor);
     }
   } else if (s_cr_stat_row < NUM_STATS && s_cr_allocated[s_cr_stat_row] > 0) {
     uint16_t val = pet_get_stat(&s_cr_pet, s_cr_stat_row);

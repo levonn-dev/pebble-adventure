@@ -167,6 +167,13 @@ static void opt_layer_update(Layer *layer, GContext *ctx) {
   }
 }
 
+static void opt_deferred_remove_both(void *data) {
+  (void)data;
+  // Remove options and main windows — creation is now on top
+  if (s_opt_window) window_stack_remove(s_opt_window, false);
+  if (s_main_window) window_stack_remove(s_main_window, false);
+}
+
 static void opt_click_select(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
   if (!s_opt_confirm) {
@@ -180,10 +187,9 @@ static void opt_click_select(ClickRecognizerRef r, void *ctx) {
     persist_delete(PERSIST_KEY_WORKER_STEPS);
     persist_delete(PERSIST_KEY_PENDING_ENCOUNTER);
 
-    // Push creation, then remove options and main
+    // Push creation on top, then defer removal of options+main
     screens_push_creation();
-    window_stack_remove(s_opt_window, false);
-    window_stack_remove(s_main_window, false);
+    app_timer_register(50, opt_deferred_remove_both, NULL);
   }
 }
 
