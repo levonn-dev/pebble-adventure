@@ -2,39 +2,127 @@
   "name": "pebble-adventure",
   "author": "eX",
   "version": "1.0.0",
-  "keywords": ["pebble-app", "game"],
+  "keywords": [
+    "pebble-app",
+    "game"
+  ],
   "private": true,
-  "dependencies": {},
+  "dependencies": {
+    "sharp": "^0.34.5"
+  },
   "pebble": {
     "displayName": "Pebble Adventure",
     "uuid": "3454caa5-0b26-4136-b272-7afcba06621c",
     "sdkVersion": "3",
     "enableMultiJS": false,
-    "targetPlatforms": ["emery", "flint"],
+    "targetPlatforms": [
+      "emery",
+      "flint"
+    ],
     "watchapp": {
       "watchface": false
     },
-    "capabilities": ["health"],
+    "capabilities": [
+      "health"
+    ],
     "resources": {
       "media": [
-        { "type": "png", "name": "FOX_IDLE_0",  "file": "images/fox_idle_0.png" },
-        { "type": "png", "name": "FOX_IDLE_1",  "file": "images/fox_idle_1.png" },
-        { "type": "png", "name": "FOX_WALK_0",  "file": "images/fox_walk_0.png" },
-        { "type": "png", "name": "FOX_WALK_1",  "file": "images/fox_walk_1.png" },
-        { "type": "png", "name": "FOX_WALK_2",  "file": "images/fox_walk_2.png" },
-        { "type": "png", "name": "FOX_WALK_3",  "file": "images/fox_walk_3.png" },
-        { "type": "png", "name": "FOX_HAPPY_0", "file": "images/fox_happy_0.png" },
-        { "type": "png", "name": "FOX_SAD_0",   "file": "images/fox_sad_0.png" },
-        { "type": "png", "name": "FOX_DIG_0",   "file": "images/fox_dig_0.png" },
-        { "type": "png", "name": "FOX_DIG_1",   "file": "images/fox_dig_1.png" },
-        { "type": "png", "name": "FOX_LG_IDLE_0", "file": "images/fox_lg_idle_0.png" },
-        { "type": "png", "name": "FOX_LG_IDLE_1", "file": "images/fox_lg_idle_1.png" },
-        { "type": "png", "name": "FOX_LG_IDLE_2", "file": "images/fox_lg_idle_2.png" },
-        { "type": "png", "name": "FOX_LG_IDLE_3", "file": "images/fox_lg_idle_3.png" },
-        { "type": "png", "name": "FOX_LG_WALK_0", "file": "images/fox_lg_walk_0.png" },
-        { "type": "png", "name": "FOX_LG_WALK_1", "file": "images/fox_lg_walk_1.png" },
-        { "type": "png", "name": "FOX_LG_WALK_2", "file": "images/fox_lg_walk_2.png" },
-        { "type": "png", "name": "FOX_LG_WALK_3", "file": "images/fox_lg_walk_3.png" }
+        {
+          "type": "png",
+          "name": "IMAGE_MENU_ICON",
+          "file": "images/app_icon.png",
+          "menuIcon": true
+        },
+        {
+          "type": "png",
+          "name": "FOX_IDLE_0",
+          "file": "images/fox_idle_0.png"
+        },
+        {
+          "type": "png",
+          "name": "FOX_IDLE_1",
+          "file": "images/fox_idle_1.png"
+        },
+        {
+          "type": "png",
+          "name": "FOX_WALK_0",
+          "file": "images/fox_walk_0.png"
+        },
+        {
+          "type": "png",
+          "name": "FOX_WALK_1",
+          "file": "images/fox_walk_1.png"
+        },
+        {
+          "type": "png",
+          "name": "FOX_WALK_2",
+          "file": "images/fox_walk_2.png"
+        },
+        {
+          "type": "png",
+          "name": "FOX_WALK_3",
+          "file": "images/fox_walk_3.png"
+        },
+        {
+          "type": "png",
+          "name": "FOX_HAPPY_0",
+          "file": "images/fox_happy_0.png"
+        },
+        {
+          "type": "png",
+          "name": "FOX_SAD_0",
+          "file": "images/fox_sad_0.png"
+        },
+        {
+          "type": "png",
+          "name": "FOX_DIG_0",
+          "file": "images/fox_dig_0.png"
+        },
+        {
+          "type": "png",
+          "name": "FOX_DIG_1",
+          "file": "images/fox_dig_1.png"
+        },
+        {
+          "type": "png",
+          "name": "FOX_LG_IDLE_0",
+          "file": "images/fox_lg_idle_0.png"
+        },
+        {
+          "type": "png",
+          "name": "FOX_LG_IDLE_1",
+          "file": "images/fox_lg_idle_1.png"
+        },
+        {
+          "type": "png",
+          "name": "FOX_LG_IDLE_2",
+          "file": "images/fox_lg_idle_2.png"
+        },
+        {
+          "type": "png",
+          "name": "FOX_LG_IDLE_3",
+          "file": "images/fox_lg_idle_3.png"
+        },
+        {
+          "type": "png",
+          "name": "FOX_LG_WALK_0",
+          "file": "images/fox_lg_walk_0.png"
+        },
+        {
+          "type": "png",
+          "name": "FOX_LG_WALK_1",
+          "file": "images/fox_lg_walk_1.png"
+        },
+        {
+          "type": "png",
+          "name": "FOX_LG_WALK_2",
+          "file": "images/fox_lg_walk_2.png"
+        },
+        {
+          "type": "png",
+          "name": "FOX_LG_WALK_3",
+          "file": "images/fox_lg_walk_3.png"
+        }
       ]
     }
   }
