@@ -13,11 +13,11 @@
 // SCREEN_ADVENTURE
 // ---------------------------------------------------------------------------
 static Window    *s_adv_window     = NULL;
-Layer     *s_adv_layer      = NULL;
+static Layer     *s_adv_layer      = NULL;
 static AppTimer  *s_adv_anim_timer = NULL;
 static uint8_t    s_adv_fox_frame  = 0;
-static uint8_t  s_adv_effect_tick = 0;
-Adventure  s_adv_current;
+static uint8_t    s_adv_effect_tick = 0;
+static Adventure  s_adv_current;
 static Pet        s_adv_pet;
 // Encounter popup queue
 #define POPUP_QUEUE_MAX 8
@@ -28,6 +28,11 @@ static struct {
   char effect[20];  // "+10% progress" etc
   bool won;
 } s_adv_popups[POPUP_QUEUE_MAX];
+
+void adv_screen_refresh(void) {
+  adventure_load(&s_adv_current);
+  if (s_adv_layer) layer_mark_dirty(s_adv_layer);
+}
 
 void adv_queue_popup(const char *title, const char *detail, bool won) {
   if (s_adv_popup_count < POPUP_QUEUE_MAX) {

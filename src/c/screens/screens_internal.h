@@ -3,12 +3,13 @@
 #include "../shared_types.h"
 
 // Shared state -- written by owning screen, read by screen_worker.c
-extern Layer     *s_adv_layer;
-extern Adventure  s_adv_current;
 extern Window    *s_cr_window;
 
 // Shared across creation and levelup screens
 extern const char *s_stat_names[NUM_STATS];
+
+// Called by screen_worker.c to reload adventure state and redraw
+void adv_screen_refresh(void);
 
 // Called by screen_worker.c when encounter message arrives
 void adv_resolve_pending_encounter(void);

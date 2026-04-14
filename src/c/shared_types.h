@@ -5,7 +5,7 @@
 
 // --- Debug ---
 // Uncomment to enable debug options in the options menu
-#define DEBUG_MODE 1
+//#define DEBUG_MODE 1
 
 // --- Constants ---
 #define MAX_SEGMENTS  8

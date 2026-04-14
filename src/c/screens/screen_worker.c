@@ -6,8 +6,7 @@
 
 void screens_on_worker_message(uint16_t type, AppWorkerMessage *message) {
   (void)message;
-  adventure_load(&s_adv_current);
-  if (s_adv_layer) layer_mark_dirty(s_adv_layer);
+  adv_screen_refresh();
 
   if (type == WORKER_MSG_ENCOUNTER) {
     adv_resolve_pending_encounter();

@@ -59,6 +59,7 @@ static void st_layer_update(Layer *layer, GContext *ctx) {
 }
 
 static void st_anim_callback(void *ctx) {
+  // mod 4 to slow animation
   s_st_fox_frame = (s_st_fox_frame + 1) % 4;
   layer_mark_dirty(s_st_layer);
   s_st_anim_timer = app_timer_register(600, st_anim_callback, NULL);
