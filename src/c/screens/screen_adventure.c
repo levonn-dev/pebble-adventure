@@ -17,7 +17,7 @@ static uint8_t    s_adv_fox_frame  = 0;
 Adventure  s_adv_current;
 static Pet        s_adv_pet;
 static bool       s_adv_show_info  = false;
-static uint8_t    s_adv_popup_ticks = 0;   // animation ticks remaining (0 = hidden)
+static bool       s_adv_popup_visible = false;  // dismissed by button press
 static char       s_adv_popup_title[24];
 static char       s_adv_popup_detail[32];
 static bool       s_adv_popup_won = false;
@@ -30,7 +30,7 @@ void adv_queue_popup(const char *title, const char *detail, bool won) {
   snprintf(s_adv_popup_title, sizeof(s_adv_popup_title), "%s", title);
   snprintf(s_adv_popup_detail, sizeof(s_adv_popup_detail), "%s", detail);
   s_adv_popup_won = won;
-  s_adv_popup_ticks = 10;
+  s_adv_popup_visible = true;
   if (s_adv_layer) layer_mark_dirty(s_adv_layer);
 }
 
@@ -59,7 +59,7 @@ void adv_resolve_pending_encounter(void) {
   } else {
     snprintf(s_adv_popup_detail, sizeof(s_adv_popup_detail), "No effect");
   }
-  s_adv_popup_ticks = 10;  // 10 ticks x 300ms = 3 seconds
+  s_adv_popup_visible = true;
   s_adv_popup_won = result.won;
 
   persist_delete(PERSIST_KEY_PENDING_ENCOUNTER);
@@ -171,7 +171,7 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
   }
 
   // Encounter popup overlay
-  if (s_adv_popup_ticks > 0) {
+  if (s_adv_popup_visible) {
     GRect popup = GRect(4, h / 2 - 24, w - 8, 48);
     graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorOxfordBlue, GColorBlack));
     graphics_fill_rect(ctx, popup, 4, GCornersAll);
@@ -198,7 +198,7 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
 
 static void adv_anim_callback(void *ctx) {
   s_adv_fox_frame = (s_adv_fox_frame + 1) % 4;
-  if (s_adv_popup_ticks > 0) s_adv_popup_ticks--;
+  // popup stays until button press — no auto-dismiss
   // Don't poll persist here -- s_adv_current is refreshed by screens_on_worker_message
   layer_mark_dirty(s_adv_layer);
   s_adv_anim_timer = app_timer_register(300, adv_anim_callback, NULL);
@@ -206,12 +206,14 @@ static void adv_anim_callback(void *ctx) {
 
 static void adv_click_up(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
+  if (s_adv_popup_visible) { s_adv_popup_visible = false; layer_mark_dirty(s_adv_layer); return; }
   s_adv_show_info = !s_adv_show_info;
   layer_mark_dirty(s_adv_layer);
 }
 
 static void adv_click_select(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
+  if (s_adv_popup_visible) { s_adv_popup_visible = false; layer_mark_dirty(s_adv_layer); return; }
   if (adventure_is_complete(&s_adv_current)) {
     window_stack_pop(true);
     screens_push_results(s_adv_current.total_xp_earned, s_adv_current.encounters_total);
@@ -220,6 +222,7 @@ static void adv_click_select(ClickRecognizerRef r, void *ctx) {
 
 static void adv_click_down(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
+  if (s_adv_popup_visible) { s_adv_popup_visible = false; layer_mark_dirty(s_adv_layer); return; }
   if (!adventure_is_complete(&s_adv_current)) {
     minigames_push_selection();
   }
