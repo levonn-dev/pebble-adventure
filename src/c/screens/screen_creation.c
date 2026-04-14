@@ -10,7 +10,7 @@
 // ---------------------------------------------------------------------------
 Window  *s_cr_window = NULL;
 static Layer   *s_cr_layer  = NULL;
-static uint8_t  s_cr_phase  = 0;           // 0=name, 1=stats
+static uint8_t  s_cr_phase  = 0;           // 0=name, 1=confirm, 2=stats
 static char     s_cr_name[12];
 static uint8_t  s_cr_cursor = 0;
 static Pet      s_cr_pet;
@@ -40,13 +40,18 @@ static int16_t cr_char_index(char c) {
 
 static void cr_cycle_char(int8_t dir) {
   char c = s_cr_name[s_cr_cursor];
-  if (c == '\0') c = 'A';
+  if (c == '\0') {
+    // First press on empty slot: show 'A' (up) or 'z' (down), don't advance past it
+    s_cr_name[s_cr_cursor] = (dir > 0) ? 'A' : s_char_table[CHAR_TABLE_LEN - 2]; // last before space
+    s_cr_last_long_dir = 0;
+    return;
+  }
   int16_t idx = cr_char_index(c);
   idx += dir;
   if (idx >= CHAR_TABLE_LEN) idx = 0;
   if (idx < 0) idx = CHAR_TABLE_LEN - 1;
   s_cr_name[s_cr_cursor] = s_char_table[idx];
-  s_cr_last_long_dir = 0;  // reset binary search on single press
+  s_cr_last_long_dir = 0;
 }
 
 static void cr_long_press_char(int8_t dir) {
@@ -86,8 +91,8 @@ static void cr_long_press_char(int8_t dir) {
   s_cr_name[s_cr_cursor] = s_char_table[target];
 }
 
-static void cr_confirm_name(void) {
-  s_cr_phase = 1;
+static void cr_accept_name(void) {
+  s_cr_phase = 2;
   pet_init_new(&s_cr_pet, s_cr_name);
   memset(s_cr_allocated, 0, sizeof(s_cr_allocated));
   s_cr_stat_row = 0;
@@ -109,8 +114,15 @@ static void cr_layer_update(Layer *layer, GContext *ctx) {
       GRect(0, 26, w, 22),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
+    // Show name with cursor underscore at current position
     char display[14];
-    snprintf(display, sizeof(display), "%s_", s_cr_name);
+    uint8_t len = (uint8_t)strlen(s_cr_name);
+    if (s_cr_cursor < len) {
+      // Mid-name: show chars before cursor, underscore, chars after
+      snprintf(display, sizeof(display), "%s_", s_cr_name);
+    } else {
+      snprintf(display, sizeof(display), "%s_", s_cr_name);
+    }
     graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
     graphics_draw_text(ctx, display,
       fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
@@ -122,10 +134,40 @@ static void cr_layer_update(Layer *layer, GContext *ctx) {
       fonts_get_system_font(FONT_KEY_GOTHIC_14),
       GRect(0, 92, w, 16),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
-    graphics_draw_text(ctx, "SELECT: next / confirm",
+    graphics_draw_text(ctx, "SEL: next  BACK: del",
       fonts_get_system_font(FONT_KEY_GOTHIC_14),
       GRect(0, 108, w, 16),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    graphics_draw_text(ctx, "HOLD SEL: confirm",
+      fonts_get_system_font(FONT_KEY_GOTHIC_14),
+      GRect(0, 124, w, 16),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+  } else if (s_cr_phase == 1) {
+    // --- Name confirmation ---
+    graphics_context_set_text_color(ctx, GColorWhite);
+    graphics_draw_text(ctx, "CONFIRM NAME?",
+      fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
+      GRect(0, 26, w, 22),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+    graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
+    graphics_draw_text(ctx, s_cr_name,
+      fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+      GRect(0, 60, w, 28),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+    graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorGreen, GColorWhite));
+    graphics_draw_text(ctx, "SELECT: Confirm",
+      fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
+      GRect(0, 100, w, 16),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    graphics_context_set_text_color(ctx, GColorLightGray);
+    graphics_draw_text(ctx, "BACK: Edit name",
+      fonts_get_system_font(FONT_KEY_GOTHIC_14),
+      GRect(0, 118, w, 16),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
   } else {
     // --- Stat allocation ---
     char pts_buf[20];
@@ -186,14 +228,14 @@ static void cr_layer_update(Layer *layer, GContext *ctx) {
 static void cr_click_up(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
   if (s_cr_phase == 0) { cr_cycle_char(1); }
-  else if (s_cr_stat_row > 0) { s_cr_stat_row--; }
+  else if (s_cr_phase == 2 && s_cr_stat_row > 0) { s_cr_stat_row--; }
   layer_mark_dirty(s_cr_layer);
 }
 
 static void cr_click_down(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
   if (s_cr_phase == 0) { cr_cycle_char(-1); }
-  else if (s_cr_stat_row < NUM_STATS) { s_cr_stat_row++; }
+  else if (s_cr_phase == 2 && s_cr_stat_row < NUM_STATS) { s_cr_stat_row++; }
   layer_mark_dirty(s_cr_layer);
 }
 
@@ -205,14 +247,16 @@ static void cr_deferred_remove(void *data) {
 static void cr_click_select(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
   if (s_cr_phase == 0) {
+    // Select advances to next character position
     uint8_t len = (uint8_t)strlen(s_cr_name);
-    if (len == 0) return;  // Don't allow empty name
-    if (s_cr_cursor < len && s_cr_cursor < 10) {
+    if (len == 0) return;  // need at least 1 char
+    if (s_cr_cursor < 10) {
       s_cr_cursor++;
-      if (s_cr_cursor >= len) cr_confirm_name();
-    } else {
-      cr_confirm_name();
+      // Cursor is now past the last char — ready for new char input
     }
+  } else if (s_cr_phase == 1) {
+    // Confirm name → go to stat allocation
+    cr_accept_name();
   } else {
     if (s_cr_stat_row < NUM_STATS) {
       uint16_t val = pet_get_stat(&s_cr_pet, s_cr_stat_row);
@@ -240,10 +284,13 @@ static void cr_click_back(ClickRecognizerRef r, void *ctx) {
   if (s_cr_phase == 0) {
     if (s_cr_cursor > 0) {
       s_cr_cursor--;
-      // Clear from cursor onward to avoid stale characters
       memset(&s_cr_name[s_cr_cursor], 0, sizeof(s_cr_name) - s_cr_cursor);
     }
-  } else if (s_cr_stat_row < NUM_STATS && s_cr_allocated[s_cr_stat_row] > 0) {
+  } else if (s_cr_phase == 1) {
+    // Back from confirm → return to name entry at end of name
+    s_cr_phase = 0;
+    s_cr_cursor = (uint8_t)strlen(s_cr_name);
+  } else if (s_cr_phase == 2 && s_cr_stat_row < NUM_STATS && s_cr_allocated[s_cr_stat_row] > 0) {
     uint16_t val = pet_get_stat(&s_cr_pet, s_cr_stat_row);
     if (stats_lower_stat(&val, &s_cr_pet.upgrade_points)) {
       pet_set_stat(&s_cr_pet, s_cr_stat_row, val);
@@ -251,6 +298,17 @@ static void cr_click_back(ClickRecognizerRef r, void *ctx) {
     }
   }
   layer_mark_dirty(s_cr_layer);
+}
+
+static void cr_long_select(ClickRecognizerRef r, void *ctx) {
+  (void)r; (void)ctx;
+  if (s_cr_phase == 0) {
+    uint8_t len = (uint8_t)strlen(s_cr_name);
+    if (len == 0) return;
+    // Long-press Select → show name confirmation
+    s_cr_phase = 1;
+    layer_mark_dirty(s_cr_layer);
+  }
 }
 
 static void cr_long_up(ClickRecognizerRef r, void *ctx) {
@@ -268,8 +326,9 @@ static void cr_click_config(void *ctx) {
   window_single_click_subscribe(BUTTON_ID_DOWN,  cr_click_down);
   window_single_click_subscribe(BUTTON_ID_SELECT, cr_click_select);
   window_single_click_subscribe(BUTTON_ID_BACK,   cr_click_back);
-  window_long_click_subscribe(BUTTON_ID_UP,   500, cr_long_up, NULL);
-  window_long_click_subscribe(BUTTON_ID_DOWN, 500, cr_long_down, NULL);
+  window_long_click_subscribe(BUTTON_ID_UP,     500, cr_long_up, NULL);
+  window_long_click_subscribe(BUTTON_ID_DOWN,   500, cr_long_down, NULL);
+  window_long_click_subscribe(BUTTON_ID_SELECT, 500, cr_long_select, NULL);
 }
 
 static void cr_window_load(Window *window) {
