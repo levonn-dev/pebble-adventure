@@ -110,7 +110,7 @@ static void cr_layer_update(Layer *layer, GContext *ctx) {
 
   graphics_context_set_fill_color(ctx, GColorBlack);
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
-  ui_draw_time(ctx, bounds);
+  ui_draw_status_bar(ctx, bounds);
 
   if (s_cr_phase == 0) {
     // --- Name entry ---

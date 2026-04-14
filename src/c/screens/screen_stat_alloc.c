@@ -33,7 +33,7 @@ static void sa_layer_update(Layer *layer, GContext *ctx) {
 
   graphics_context_set_fill_color(ctx, GColorBlack);
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
-  ui_draw_time(ctx, bounds);
+  ui_draw_status_bar(ctx, bounds);
 
   // Layout: two header lines (title + points), then stats, done, hint
   int16_t top_y = 22;        // after time

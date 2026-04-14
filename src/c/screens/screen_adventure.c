@@ -80,8 +80,7 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
 
   // Time & Battery -- always visible top
-  ui_draw_time(ctx, bounds);
-  ui_draw_battery(ctx, bounds);
+  ui_draw_status_bar(ctx, bounds);
 
   // --- IDLE MODE: no active adventure ---
   if (!s_adv_current.active && !adventure_is_complete(&s_adv_current)) {

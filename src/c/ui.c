@@ -3,7 +3,7 @@
 #include "shared_types.h"
 #include <pebble.h>
 
-void ui_draw_time(GContext *ctx, GRect bounds) {
+void ui_draw_status_bar(GContext *ctx, GRect bounds) {
   light_enable_interaction();
   time_t now = time(NULL);
   struct tm *t = localtime(&now);
@@ -14,6 +14,7 @@ void ui_draw_time(GContext *ctx, GRect bounds) {
     fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
     GRect(4, 2, 60, 22),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+  ui_draw_battery(ctx, bounds);
 }
 
 void ui_draw_progress_bar(GContext *ctx, GRect rect, uint32_t value, uint32_t max_val) {

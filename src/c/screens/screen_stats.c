@@ -22,8 +22,7 @@ static void st_layer_update(Layer *layer, GContext *ctx) {
   graphics_context_set_fill_color(ctx, GColorBlack);
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
 
-  ui_draw_time(ctx, bounds);
-  ui_draw_battery(ctx, bounds);
+  ui_draw_status_bar(ctx, bounds);
 
   // Fox in upper quarter
   GPoint fox_center = GPoint(w / 2, h / 4 + 4);

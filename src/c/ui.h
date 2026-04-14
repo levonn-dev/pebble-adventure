@@ -3,7 +3,7 @@
 
 // Draw "HH:MM" in top-left using GOTHIC_18_BOLD. Always call this first in
 // any update_proc so time is always visible.
-void ui_draw_time(GContext *ctx, GRect bounds);
+void ui_draw_status_bar(GContext *ctx, GRect bounds);
 
 // Draw a horizontal progress bar in rect. Left fills proportionally.
 // Color build: fill = GColorGreen, empty = GColorDarkGray.
