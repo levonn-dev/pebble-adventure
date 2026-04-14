@@ -36,122 +36,164 @@
         {
           "type": "png",
           "name": "FOX_IDLE_0",
-          "file": "images/fox_idle_0.png"
+          "file": "images/sprites/fox/small/fox_idle_0.png"
         },
         {
           "type": "png",
           "name": "FOX_IDLE_1",
-          "file": "images/fox_idle_1.png"
+          "file": "images/sprites/fox/small/fox_idle_1.png"
         },
         {
           "type": "png",
           "name": "FOX_WALK_0",
-          "file": "images/fox_walk_0.png"
+          "file": "images/sprites/fox/small/fox_walk_0.png"
         },
         {
           "type": "png",
           "name": "FOX_WALK_1",
-          "file": "images/fox_walk_1.png"
+          "file": "images/sprites/fox/small/fox_walk_1.png"
         },
         {
           "type": "png",
           "name": "FOX_WALK_2",
-          "file": "images/fox_walk_2.png"
+          "file": "images/sprites/fox/small/fox_walk_2.png"
         },
         {
           "type": "png",
           "name": "FOX_WALK_3",
-          "file": "images/fox_walk_3.png"
+          "file": "images/sprites/fox/small/fox_walk_3.png"
         },
         {
           "type": "png",
           "name": "FOX_HAPPY_0",
-          "file": "images/fox_happy_0.png"
+          "file": "images/sprites/fox/small/fox_happy_0.png"
         },
         {
           "type": "png",
           "name": "FOX_SAD_0",
-          "file": "images/fox_sad_0.png"
+          "file": "images/sprites/fox/small/fox_sad_0.png"
         },
         {
           "type": "png",
           "name": "FOX_DIG_0",
-          "file": "images/fox_dig_0.png"
+          "file": "images/sprites/fox/small/fox_dig_0.png"
         },
         {
           "type": "png",
           "name": "FOX_DIG_1",
-          "file": "images/fox_dig_1.png"
+          "file": "images/sprites/fox/small/fox_dig_1.png"
         },
         {
           "type": "png",
           "name": "FOX_LG_IDLE_0",
-          "file": "images/fox_lg_idle_0.png"
+          "file": "images/sprites/fox/large/fox_lg_idle_0.png"
         },
         {
           "type": "png",
           "name": "FOX_LG_IDLE_1",
-          "file": "images/fox_lg_idle_1.png"
+          "file": "images/sprites/fox/large/fox_lg_idle_1.png"
         },
         {
           "type": "png",
           "name": "FOX_LG_IDLE_2",
-          "file": "images/fox_lg_idle_2.png"
+          "file": "images/sprites/fox/large/fox_lg_idle_2.png"
         },
         {
           "type": "png",
           "name": "FOX_LG_IDLE_3",
-          "file": "images/fox_lg_idle_3.png"
+          "file": "images/sprites/fox/large/fox_lg_idle_3.png"
         },
         {
           "type": "png",
           "name": "FOX_LG_WALK_0",
-          "file": "images/fox_lg_walk_0.png"
+          "file": "images/sprites/fox/large/fox_lg_walk_0.png"
         },
         {
           "type": "png",
           "name": "FOX_LG_WALK_1",
-          "file": "images/fox_lg_walk_1.png"
+          "file": "images/sprites/fox/large/fox_lg_walk_1.png"
         },
         {
           "type": "png",
           "name": "FOX_LG_WALK_2",
-          "file": "images/fox_lg_walk_2.png"
+          "file": "images/sprites/fox/large/fox_lg_walk_2.png"
         },
         {
           "type": "png",
           "name": "FOX_LG_WALK_3",
-          "file": "images/fox_lg_walk_3.png"
+          "file": "images/sprites/fox/large/fox_lg_walk_3.png"
         },
         {
           "type": "png",
           "name": "BG_PLAINS",
-          "file": "images/backgrounds/bg_plains.png"
+          "file": "images/backgrounds/color/bg_plains.png",
+          "targetPlatforms": ["emery"]
+        },
+        {
+          "type": "png",
+          "name": "BG_PLAINS",
+          "file": "images/backgrounds/bw/bg_plains_bw.png",
+          "targetPlatforms": ["flint"]
         },
         {
           "type": "png",
           "name": "BG_FOREST",
-          "file": "images/backgrounds/bg_forest.png"
+          "file": "images/backgrounds/color/bg_forest.png",
+          "targetPlatforms": ["emery"]
+        },
+        {
+          "type": "png",
+          "name": "BG_FOREST",
+          "file": "images/backgrounds/bw/bg_forest_bw.png",
+          "targetPlatforms": ["flint"]
         },
         {
           "type": "png",
           "name": "BG_WATER",
-          "file": "images/backgrounds/bg_water.png"
+          "file": "images/backgrounds/color/bg_water.png",
+          "targetPlatforms": ["emery"]
+        },
+        {
+          "type": "png",
+          "name": "BG_WATER",
+          "file": "images/backgrounds/bw/bg_water_bw.png",
+          "targetPlatforms": ["flint"]
         },
         {
           "type": "png",
           "name": "BG_MOUNTAIN",
-          "file": "images/backgrounds/bg_mountain.png"
+          "file": "images/backgrounds/color/bg_mountain.png",
+          "targetPlatforms": ["emery"]
+        },
+        {
+          "type": "png",
+          "name": "BG_MOUNTAIN",
+          "file": "images/backgrounds/bw/bg_mountain_bw.png",
+          "targetPlatforms": ["flint"]
         },
         {
           "type": "png",
           "name": "BG_CAVE",
-          "file": "images/backgrounds/bg_cave.png"
+          "file": "images/backgrounds/color/bg_cave.png",
+          "targetPlatforms": ["emery"]
+        },
+        {
+          "type": "png",
+          "name": "BG_CAVE",
+          "file": "images/backgrounds/bw/bg_cave_bw.png",
+          "targetPlatforms": ["flint"]
         },
         {
           "type": "png",
           "name": "BG_STORM",
-          "file": "images/backgrounds/bg_storm.png"
+          "file": "images/backgrounds/color/bg_storm.png",
+          "targetPlatforms": ["emery"]
+        },
+        {
+          "type": "png",
+          "name": "BG_STORM",
+          "file": "images/backgrounds/bw/bg_storm_bw.png",
+          "targetPlatforms": ["flint"]
         }
       ]
     }

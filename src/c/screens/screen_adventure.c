@@ -149,9 +149,11 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
   uint8_t pct = adventure_segment_progress_pct(&s_adv_current);
   ui_draw_progress_bar(ctx, GRect(8, 22, w - 16, 10), (uint32_t)pct, 100);
 
-  // Biome name and step modifier
   uint8_t cur_biome = s_adv_current.segments[seg];
   const BiomeConfig *cfg = biome_get_config((BiomeType)cur_biome);
+
+#ifdef PBL_COLOR
+  // Biome name and step modifier (Emery only)
   uint32_t mult = biome_step_multiplier(cfg, &s_adv_pet);
   char info_buf[28];
   snprintf(info_buf, sizeof(info_buf), "%s  x%lu.%02lu", cfg->name,
@@ -161,9 +163,10 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
     fonts_get_system_font(FONT_KEY_GOTHIC_14),
     GRect(4, 32, w - 8, 16),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+#endif
 
-  // Biome background — visible area from below progress bar to above text strip
-  int16_t biome_top = 50;
+  // Biome background — visible area to above text strip
+  int16_t biome_top = PBL_IF_COLOR_ELSE(50, 34);
   int16_t biome_bottom = h - 36;  // above the black text strip
   GRect biome_area = GRect(0, biome_top, w, biome_bottom - biome_top);
   backgrounds_draw(ctx, biome_area, cur_biome);
@@ -182,12 +185,26 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
   // Steps today
   uint32_t steps = (uint32_t)health_service_sum_today(HealthMetricStepCount);
   char steps_buf[20];
+#ifdef PBL_COLOR
   snprintf(steps_buf, sizeof(steps_buf), "Steps Today: %lu", (unsigned long)steps);
   graphics_context_set_text_color(ctx, GColorWhite);
   graphics_draw_text(ctx, steps_buf,
     fonts_get_system_font(FONT_KEY_GOTHIC_14),
     GRect(4, h - 34, w - 8, 16),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+#else
+  // Flint: steps left-aligned, biome name right-aligned
+  snprintf(steps_buf, sizeof(steps_buf), "Steps: %lu", (unsigned long)steps);
+  graphics_context_set_text_color(ctx, GColorWhite);
+  graphics_draw_text(ctx, steps_buf,
+    fonts_get_system_font(FONT_KEY_GOTHIC_14),
+    GRect(4, h - 34, w - 8, 16),
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+  graphics_draw_text(ctx, cfg->name,
+    fonts_get_system_font(FONT_KEY_GOTHIC_14),
+    GRect(4, h - 34, w - 8, 16),
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentRight, NULL);
+#endif
 
   // Button hints
   graphics_context_set_text_color(ctx, GColorLightGray);
@@ -272,7 +289,7 @@ static void adv_alloc_done(Pet *pet) {
 static void adv_click_up(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
   if (adv_dismiss_popup()) return;
-  if (s_adv_pet.upgrade_points > 0) {
+  if (!s_adv_current.active && !adventure_is_complete(&s_adv_current) && s_adv_pet.upgrade_points > 0) {
     screens_push_stat_alloc("ALLOCATE STATS", &s_adv_pet, adv_alloc_done);
   } else {
     screens_push_stats();
