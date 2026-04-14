@@ -17,20 +17,28 @@ static uint8_t    s_adv_fox_frame  = 0;
 Adventure  s_adv_current;
 static Pet        s_adv_pet;
 static bool       s_adv_show_info  = false;
-static bool       s_adv_popup_visible = false;  // dismissed by button press
-static char       s_adv_popup_title[24];
-static char       s_adv_popup_detail[32];
-static bool       s_adv_popup_won = false;
+// Encounter popup queue
+#define POPUP_QUEUE_MAX 8
+static uint8_t s_adv_popup_count = 0;
+static uint8_t s_adv_popup_index = 0;  // currently displayed
+static struct {
+  char name[16];    // encounter name
+  char effect[20];  // "+10% progress" etc
+  bool won;
+} s_adv_popups[POPUP_QUEUE_MAX];
 
 static const char *s_biome_names[NUM_BIOMES] = {
   "Plains", "Forest", "Water", "Mountain", "Cave", "Storm"
 };
 
 void adv_queue_popup(const char *title, const char *detail, bool won) {
-  snprintf(s_adv_popup_title, sizeof(s_adv_popup_title), "%s", title);
-  snprintf(s_adv_popup_detail, sizeof(s_adv_popup_detail), "%s", detail);
-  s_adv_popup_won = won;
-  s_adv_popup_visible = true;
+  if (s_adv_popup_count < POPUP_QUEUE_MAX) {
+    uint8_t i = s_adv_popup_count;
+    snprintf(s_adv_popups[i].name, sizeof(s_adv_popups[i].name), "%s", title);
+    snprintf(s_adv_popups[i].effect, sizeof(s_adv_popups[i].effect), "%s", detail);
+    s_adv_popups[i].won = won;
+    s_adv_popup_count++;
+  }
   if (s_adv_layer) layer_mark_dirty(s_adv_layer);
 }
 
@@ -48,19 +56,17 @@ void adv_resolve_pending_encounter(void) {
   encounter_apply(&result, &s_adv_current);
   adventure_save(&s_adv_current);
 
-  snprintf(s_adv_popup_title, sizeof(s_adv_popup_title), "%s: %s",
-           result.encounter_name, result.won ? "WIN" : "LOSE");
+  // Format and queue popup
+  char detail[20];
   if (result.progress_change != 0) {
-    snprintf(s_adv_popup_detail, sizeof(s_adv_popup_detail), "%s%d%% progress",
+    snprintf(detail, sizeof(detail), "%s%d%% progress",
              result.progress_change > 0 ? "+" : "", (int)result.progress_change);
   } else if (result.bonus_xp > 0) {
-    snprintf(s_adv_popup_detail, sizeof(s_adv_popup_detail), "+%lu bonus XP",
-             (unsigned long)result.bonus_xp);
+    snprintf(detail, sizeof(detail), "+%lu XP", (unsigned long)result.bonus_xp);
   } else {
-    snprintf(s_adv_popup_detail, sizeof(s_adv_popup_detail), "No effect");
+    snprintf(detail, sizeof(detail), "No effect");
   }
-  s_adv_popup_visible = true;
-  s_adv_popup_won = result.won;
+  adv_queue_popup(result.encounter_name, detail, result.won);
 
   persist_delete(PERSIST_KEY_PENDING_ENCOUNTER);
   if (s_adv_layer) layer_mark_dirty(s_adv_layer);
@@ -170,29 +176,53 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
       GRect(12, 88, w - 24, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   }
 
-  // Encounter popup overlay
-  if (s_adv_popup_visible) {
-    GRect popup = GRect(4, h / 2 - 24, w - 8, 48);
+  // Encounter popup queue
+  if (s_adv_popup_index < s_adv_popup_count) {
+    GRect popup = GRect(4, h / 2 - 32, w - 8, 64);
     graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorOxfordBlue, GColorBlack));
     graphics_fill_rect(ctx, popup, 4, GCornersAll);
     graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
     graphics_draw_round_rect(ctx, popup, 4);
 
     // Fox reaction
-    ui_draw_fox(ctx, GPoint(20, h / 2 - 8),
-                s_adv_popup_won ? FOX_HAPPY : FOX_SAD, 0);
+    ui_draw_fox(ctx, GPoint(16, h / 2 - 12),
+                s_adv_popups[s_adv_popup_index].won ? FOX_HAPPY : FOX_SAD, 0);
 
+    // Encounter name
     graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
-    graphics_draw_text(ctx, s_adv_popup_title,
+    graphics_draw_text(ctx, s_adv_popups[s_adv_popup_index].name,
       fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
-      GRect(36, h / 2 - 22, w - 44, 16),
-      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+      GRect(36, h / 2 - 30, w - 44, 16),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
+    // Won/Lost
+    graphics_context_set_text_color(ctx,
+      s_adv_popups[s_adv_popup_index].won
+        ? PBL_IF_COLOR_ELSE(GColorGreen, GColorWhite)
+        : PBL_IF_COLOR_ELSE(GColorRed, GColorWhite));
+    graphics_draw_text(ctx,
+      s_adv_popups[s_adv_popup_index].won ? "Won!" : "Lost",
+      fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
+      GRect(36, h / 2 - 14, w - 44, 16),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+
+    // Effect
     graphics_context_set_text_color(ctx, GColorWhite);
-    graphics_draw_text(ctx, s_adv_popup_detail,
+    graphics_draw_text(ctx, s_adv_popups[s_adv_popup_index].effect,
       fonts_get_system_font(FONT_KEY_GOTHIC_14),
-      GRect(36, h / 2 - 4, w - 44, 16),
-      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+      GRect(36, h / 2 + 2, w - 44, 16),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+
+    // Queue indicator
+    if (s_adv_popup_count > 1) {
+      char qbuf[8];
+      snprintf(qbuf, sizeof(qbuf), "%d/%d", (int)(s_adv_popup_index + 1), (int)s_adv_popup_count);
+      graphics_context_set_text_color(ctx, GColorLightGray);
+      graphics_draw_text(ctx, qbuf,
+        fonts_get_system_font(FONT_KEY_GOTHIC_14),
+        GRect(36, h / 2 + 18, w - 44, 14),
+        GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+    }
   }
 }
 
@@ -204,16 +234,31 @@ static void adv_anim_callback(void *ctx) {
   s_adv_anim_timer = app_timer_register(300, adv_anim_callback, NULL);
 }
 
+// Advance popup queue or dismiss
+static bool adv_dismiss_popup(void) {
+  if (s_adv_popup_index < s_adv_popup_count) {
+    s_adv_popup_index++;
+    if (s_adv_popup_index >= s_adv_popup_count) {
+      // All popups seen — reset queue
+      s_adv_popup_count = 0;
+      s_adv_popup_index = 0;
+    }
+    layer_mark_dirty(s_adv_layer);
+    return true;
+  }
+  return false;
+}
+
 static void adv_click_up(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
-  if (s_adv_popup_visible) { s_adv_popup_visible = false; layer_mark_dirty(s_adv_layer); return; }
+  if (adv_dismiss_popup()) return;
   s_adv_show_info = !s_adv_show_info;
   layer_mark_dirty(s_adv_layer);
 }
 
 static void adv_click_select(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
-  if (s_adv_popup_visible) { s_adv_popup_visible = false; layer_mark_dirty(s_adv_layer); return; }
+  if (adv_dismiss_popup()) return;
   if (adventure_is_complete(&s_adv_current)) {
     window_stack_pop(true);
     screens_push_results(s_adv_current.total_xp_earned, s_adv_current.encounters_total);
@@ -222,7 +267,7 @@ static void adv_click_select(ClickRecognizerRef r, void *ctx) {
 
 static void adv_click_down(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
-  if (s_adv_popup_visible) { s_adv_popup_visible = false; layer_mark_dirty(s_adv_layer); return; }
+  if (adv_dismiss_popup()) return;
   if (!adventure_is_complete(&s_adv_current)) {
     minigames_push_selection();
   }

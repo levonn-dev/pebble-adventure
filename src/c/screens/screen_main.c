@@ -291,19 +291,16 @@ static void opt_click_select(ClickRecognizerRef r, void *ctx) {
       adventure_save(&adv);
       s_main_has_active_adv = adv.active;
       // Queue popup for adventure screen
-      char title[24];
-      snprintf(title, sizeof(title), "%s: %s",
-               result.encounter_name, result.won ? "WIN" : "LOSE");
-      char detail[32];
+      char detail[20];
       if (result.progress_change != 0) {
         snprintf(detail, sizeof(detail), "%s%d%% progress",
                  result.progress_change > 0 ? "+" : "", (int)result.progress_change);
       } else if (result.bonus_xp > 0) {
-        snprintf(detail, sizeof(detail), "+%lu bonus XP", (unsigned long)result.bonus_xp);
+        snprintf(detail, sizeof(detail), "+%lu XP", (unsigned long)result.bonus_xp);
       } else {
         snprintf(detail, sizeof(detail), "No effect");
       }
-      adv_queue_popup(title, detail, result.won);
+      adv_queue_popup(result.encounter_name, detail, result.won);
       ui_vibe_short();
     }
     layer_mark_dirty(s_opt_layer);
