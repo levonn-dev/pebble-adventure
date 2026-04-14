@@ -83,6 +83,20 @@ static void draw_fallback(GContext *ctx, GRect area, uint8_t biome) {
   graphics_fill_rect(ctx, area, 0, GCornerNone);
 }
 
+// Per-biome ground color that fills the area below the bitmap so Pebble's
+// automatic tiling never shows (the bitmap only covers the top portion).
+static GColor bg_ground_color(uint8_t biome) {
+  switch ((BiomeType)biome) {
+    case BIOME_PLAINS:   return PBL_IF_COLOR_ELSE(GColorIslamicGreen, GColorDarkGray);
+    case BIOME_FOREST:   return PBL_IF_COLOR_ELSE(GColorBulgarianRose, GColorDarkGray);
+    case BIOME_WATER:    return PBL_IF_COLOR_ELSE(GColorOxfordBlue, GColorDarkGray);
+    case BIOME_MOUNTAIN: return PBL_IF_COLOR_ELSE(GColorDarkGray, GColorDarkGray);
+    case BIOME_CAVE:     return PBL_IF_COLOR_ELSE(GColorOxfordBlue, GColorBlack);
+    case BIOME_STORM:    return PBL_IF_COLOR_ELSE(GColorBulgarianRose, GColorBlack);
+    default:             return GColorBlack;
+  }
+}
+
 void backgrounds_draw(GContext *ctx, GRect area, uint8_t biome) {
   ensure_loaded(biome);
   if (!s_current_bg) {
@@ -90,9 +104,21 @@ void backgrounds_draw(GContext *ctx, GRect area, uint8_t biome) {
     return;
   }
 
-  // Draw the bitmap scaled to fill the biome area.
+  GSize img = gbitmap_get_bounds(s_current_bg).size;
+
+  // Fill the entire area with the ground color first, so any excess
+  // below the bitmap shows ground instead of tiled sky.
+  graphics_context_set_fill_color(ctx, bg_ground_color(biome));
+  graphics_fill_rect(ctx, area, 0, GCornerNone);
+
+  // Draw the bitmap at native size, aligned to the top of the area.
+  // The rect matches the bitmap's dimensions exactly, so Pebble won't
+  // tile — it just clips if the bitmap extends beyond the area.
+  GRect dest = GRect(area.origin.x, area.origin.y,
+                     img.w < area.size.w ? img.w : area.size.w,
+                     img.h < area.size.h ? img.h : area.size.h);
   graphics_context_set_compositing_mode(ctx, GCompOpAssign);
-  graphics_draw_bitmap_in_rect(ctx, s_current_bg, area);
+  graphics_draw_bitmap_in_rect(ctx, s_current_bg, dest);
 }
 
 // ---------------------------------------------------------------------------
