@@ -145,11 +145,12 @@ static void sa_click_select(ClickRecognizerRef r, void *ctx) {
       s_sa_alloc[s_sa_row]++;
     }
   } else {
-    // Done — invoke callback, then pop this window
+    // Done — invoke callback, then remove this window
     StatAllocDoneCallback cb = s_sa_done_cb;
     Pet pet_copy = s_sa_pet;
     if (cb) cb(&pet_copy);
-    window_stack_pop(true);
+    // Callback may push new windows on top, so remove by reference not pop
+    if (s_sa_window) window_stack_remove(s_sa_window, false);
   }
   layer_mark_dirty(s_sa_layer);
 }
