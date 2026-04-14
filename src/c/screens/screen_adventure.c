@@ -134,9 +134,11 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
   uint8_t pct = adventure_segment_progress_pct(&s_adv_current);
   ui_draw_progress_bar(ctx, GRect(8, 22, w - 16, 10), (uint32_t)pct, 100);
 
-  // Biome background
+  // Biome background — visible area from below progress bar to above text strip
   int16_t ground_y = h / 2 + 8;
-  GRect biome_area = GRect(0, 50, w, ground_y - 50 + (h - ground_y));
+  int16_t biome_top = 50;
+  int16_t biome_bottom = h - 36;  // above the black text strip
+  GRect biome_area = GRect(0, biome_top, w, biome_bottom - biome_top);
   backgrounds_draw(ctx, biome_area, s_adv_current.segments[seg]);
   backgrounds_draw_effects(ctx, biome_area, s_adv_current.segments[seg],
                            0, s_adv_effect_tick);
