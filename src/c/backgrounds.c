@@ -83,16 +83,16 @@ static void draw_fallback(GContext *ctx, GRect area, uint8_t biome) {
   graphics_fill_rect(ctx, area, 0, GCornerNone);
 }
 
-// Per-biome ground color that fills the area below the bitmap so Pebble's
-// automatic tiling never shows (the bitmap only covers the top portion).
+// Per-biome ground color sampled from each image's bottom row so the
+// fill below the bitmap blends seamlessly with the ground strip.
 static GColor bg_ground_color(uint8_t biome) {
   switch ((BiomeType)biome) {
-    case BIOME_PLAINS:   return PBL_IF_COLOR_ELSE(GColorIslamicGreen, GColorDarkGray);
-    case BIOME_FOREST:   return PBL_IF_COLOR_ELSE(GColorBulgarianRose, GColorDarkGray);
-    case BIOME_WATER:    return PBL_IF_COLOR_ELSE(GColorOxfordBlue, GColorDarkGray);
-    case BIOME_MOUNTAIN: return PBL_IF_COLOR_ELSE(GColorDarkGray, GColorDarkGray);
-    case BIOME_CAVE:     return PBL_IF_COLOR_ELSE(GColorOxfordBlue, GColorBlack);
-    case BIOME_STORM:    return PBL_IF_COLOR_ELSE(GColorBulgarianRose, GColorBlack);
+    case BIOME_PLAINS:   return PBL_IF_COLOR_ELSE(GColorFromRGB(85, 85, 0),     GColorDarkGray);
+    case BIOME_FOREST:   return PBL_IF_COLOR_ELSE(GColorFromRGB(170, 85, 85),   GColorDarkGray);
+    case BIOME_WATER:    return PBL_IF_COLOR_ELSE(GColorFromRGB(85, 85, 85),    GColorDarkGray);
+    case BIOME_MOUNTAIN: return PBL_IF_COLOR_ELSE(GColorFromRGB(85, 85, 85),    GColorDarkGray);
+    case BIOME_CAVE:     return PBL_IF_COLOR_ELSE(GColorFromRGB(85, 85, 85),    GColorBlack);
+    case BIOME_STORM:    return PBL_IF_COLOR_ELSE(GColorFromRGB(170, 85, 85),   GColorBlack);
     default:             return GColorBlack;
   }
 }
