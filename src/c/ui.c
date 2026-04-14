@@ -123,7 +123,7 @@ void ui_draw_fox(GContext *ctx, GPoint center, FoxState state, uint8_t frame) {
   // Try PNG sprite first — falls back to procedural if not loaded
   GBitmap *sprite = sprites_get_fox(state, frame);
   if (sprite) {
-    GRect dest = GRect(center.x - 8, center.y - 8, 16, 16);
+    GRect dest = GRect(center.x - 12, center.y - 12, 24, 24);
     graphics_context_set_compositing_mode(ctx, GCompOpSet);
     graphics_draw_bitmap_in_rect(ctx, sprite, dest);
     return;
