@@ -170,7 +170,7 @@ static void effects_plains(GContext *ctx, GRect area, uint8_t tick) {
       int16_t px = (int16_t)(((uint32_t)x_seed + (uint32_t)area.size.w * 256
                               - (uint32_t)(tick * 2)) % area.size.w) + area.origin.x;
       int16_t py = area.origin.y + 30 + (int16_t)(bg_hash(i, 3) % (area.size.h / 3));
-      graphics_fill_circle(ctx, GPoint(px, py), 0);  // single pixel but via fill for visibility
+      graphics_fill_circle(ctx, GPoint(px, py), 1);
     }
   }
 }
