@@ -104,7 +104,7 @@ static void th_layer_update(Layer *layer, GContext *ctx) {
     } else if (s_th_pick == SPOT_SMALL) {
       result_text = "Found! +10%";
     } else {
-      result_text = "Empty... +5%";
+      result_text = "Empty...";
     }
     // Fox reaction to find
     int16_t fox_y = grid_y + 2 * (cell_h + 4) + 16;
@@ -157,7 +157,7 @@ static void th_click_select(ClickRecognizerRef r, void *ctx) {
   int8_t reward;
   if (s_th_pick == SPOT_LARGE) reward = 20;
   else if (s_th_pick == SPOT_SMALL) reward = 10;
-  else reward = 5;
+  else reward = 0;
 
   Adventure adv;
   if (adventure_load(&adv) && adv.active) {
