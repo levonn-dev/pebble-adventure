@@ -193,8 +193,12 @@ static void effects_forest(GContext *ctx, GRect area, uint8_t tick) {
   // Falling leaves: small leaf shapes drifting down with horizontal sway.
   // Each leaf is drawn as two short lines forming a "V" shape, rotated
   // slightly based on its sway direction to look like a tumbling leaf.
-  for (uint8_t i = 0; i < 5; i++) {
-    int16_t x0 = (int16_t)(bg_hash(i, 10) % area.size.w) + area.origin.x;
+  for (uint8_t i = 0; i < 6; i++) {
+    // Base x drifts right-to-left over time (subtract tick).
+    // First leaf is seeded in the left 40% to ensure coverage.
+    uint16_t x_range = (i == 0) ? (area.size.w * 2 / 5) : area.size.w;
+    int16_t x0 = (int16_t)(((uint32_t)bg_hash(i, 10) + (uint32_t)area.size.w * 256
+                            - (uint32_t)(tick)) % x_range) + area.origin.x;
     int16_t sway = (int16_t)((tick + i * 3) % 12) - 6;
     int16_t y = (int16_t)((bg_hash(i, 11) + tick * 2) % area.size.h) + area.origin.y;
     int16_t lx = x0 + sway;
