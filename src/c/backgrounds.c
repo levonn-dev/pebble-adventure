@@ -11,28 +11,61 @@ static inline uint16_t bg_hash(uint16_t a, uint16_t b) {
 
 // ---------------------------------------------------------------------------
 // Biome backgrounds — 6 wide PNGs that ping-pong scroll horizontally to
-// simulate the fox's movement during an adventure. Indexed by BiomeType.
+// simulate the fox's movement during an adventure.
+//
+// Biomes are LAZY-LOADED: only the currently-active biome's bitmap is kept
+// in memory at any time. When backgrounds_draw is called with a different
+// biome, the previous bitmap is destroyed and the new one loaded. This
+// keeps memory footprint to one ~57KB bitmap instead of six (345KB),
+// which is necessary to fit in the Pebble app heap on color platforms.
 // ---------------------------------------------------------------------------
-#define BG_COUNT 6
+#define BG_NONE 0xFF  // sentinel indicating no biome is currently loaded
 
-static GBitmap *s_bg[BG_COUNT] = { NULL };
+static GBitmap *s_current_bg    = NULL;
+static uint8_t  s_current_biome = BG_NONE;
+
+static uint32_t bg_resource_id(uint8_t biome) {
+  switch ((BiomeType)biome) {
+    case BIOME_PLAINS:   return RESOURCE_ID_BG_PLAINS;
+    case BIOME_FOREST:   return RESOURCE_ID_BG_FOREST;
+    case BIOME_WATER:    return RESOURCE_ID_BG_WATER;
+    case BIOME_MOUNTAIN: return RESOURCE_ID_BG_MOUNTAIN;
+    case BIOME_CAVE:     return RESOURCE_ID_BG_CAVE;
+    case BIOME_STORM:    return RESOURCE_ID_BG_STORM;
+    default: return 0;
+  }
+}
+
+// Ensure the given biome's bitmap is loaded, freeing any previously-loaded
+// biome first. No-op if the requested biome is already loaded.
+static void ensure_loaded(uint8_t biome) {
+  if (biome == s_current_biome && s_current_bg) return;
+
+  if (s_current_bg) {
+    gbitmap_destroy(s_current_bg);
+    s_current_bg = NULL;
+  }
+  s_current_biome = BG_NONE;
+
+  uint32_t rid = bg_resource_id(biome);
+  if (rid == 0) return;
+
+  s_current_bg = gbitmap_create_with_resource(rid);
+  if (s_current_bg) {
+    s_current_biome = biome;
+  }
+}
 
 void backgrounds_init(void) {
-  s_bg[BIOME_PLAINS]   = gbitmap_create_with_resource(RESOURCE_ID_BG_PLAINS);
-  s_bg[BIOME_FOREST]   = gbitmap_create_with_resource(RESOURCE_ID_BG_FOREST);
-  s_bg[BIOME_WATER]    = gbitmap_create_with_resource(RESOURCE_ID_BG_WATER);
-  s_bg[BIOME_MOUNTAIN] = gbitmap_create_with_resource(RESOURCE_ID_BG_MOUNTAIN);
-  s_bg[BIOME_CAVE]     = gbitmap_create_with_resource(RESOURCE_ID_BG_CAVE);
-  s_bg[BIOME_STORM]    = gbitmap_create_with_resource(RESOURCE_ID_BG_STORM);
+  // Nothing to do — biome bitmaps are lazy-loaded on first draw.
 }
 
 void backgrounds_deinit(void) {
-  for (int i = 0; i < BG_COUNT; i++) {
-    if (s_bg[i]) {
-      gbitmap_destroy(s_bg[i]);
-      s_bg[i] = NULL;
-    }
+  if (s_current_bg) {
+    gbitmap_destroy(s_current_bg);
+    s_current_bg = NULL;
   }
+  s_current_biome = BG_NONE;
 }
 
 static void draw_fallback(GContext *ctx, GRect area, uint8_t biome) {
@@ -51,12 +84,13 @@ static void draw_fallback(GContext *ctx, GRect area, uint8_t biome) {
 }
 
 void backgrounds_draw(GContext *ctx, GRect area, uint8_t biome, uint16_t scroll_offset) {
-  if (biome >= BG_COUNT || !s_bg[biome]) {
+  ensure_loaded(biome);
+  if (!s_current_bg) {
     draw_fallback(ctx, area, biome);
     return;
   }
 
-  GBitmap *bg = s_bg[biome];
+  GBitmap *bg = s_current_bg;
   GSize img = gbitmap_get_bounds(bg).size;
 
   // If the image is narrower than the area, nothing to scroll — draw it stretched to fit.

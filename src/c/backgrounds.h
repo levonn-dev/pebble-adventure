@@ -1,10 +1,13 @@
 #pragma once
 #include <pebble.h>
 
-// Load all biome background bitmaps. Call once in app init.
+// Initialize the backgrounds module. Does NOT load any bitmaps — biome
+// bitmaps are loaded lazily on first draw to keep memory footprint low
+// (a single 400x144 color bitmap is ~57KB, and the Pebble app heap is
+// too small to hold all six biomes at once).
 void backgrounds_init(void);
 
-// Free all cached background bitmaps. Call in app deinit.
+// Free the currently-loaded background bitmap (if any). Call in app deinit.
 void backgrounds_deinit(void);
 
 // Draw the biome's ping-pong scrolling background within `area`.
@@ -13,7 +16,12 @@ void backgrounds_deinit(void);
 // converts it into a ping-pong window position over [0, imgW - areaW]
 // so the visible window oscillates instead of wrapping. This avoids
 // any need for seamlessly-tileable edges in the source image.
-// If the bitmap is not loaded, fills `area` with a solid fallback color.
+//
+// Lazy-loads the biome's bitmap on demand: if `biome` differs from the
+// currently-cached biome, the previous bitmap is freed and the new one
+// is loaded before drawing. Only one biome is kept in memory at a time.
+//
+// If the bitmap fails to load, fills `area` with a solid fallback color.
 void backgrounds_draw(GContext *ctx, GRect area, uint8_t biome, uint16_t scroll_offset);
 
 // Draw biome-specific procedural overlays on top of the already-drawn
