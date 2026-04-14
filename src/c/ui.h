@@ -25,6 +25,12 @@ typedef enum {
 // Draw fox sprite centered at 'center' in the given state.
 void ui_draw_fox(GContext *ctx, GPoint center, FoxState state, uint8_t frame);
 
+// Draw a menu row with optional selection highlight.
+// If selected: inverted colors (white bg on B&W, dark gray on color).
+// Adds 2px descender padding below text_h for chars like g, j, y.
+// Returns the text color to use (so caller can draw text after).
+GColor ui_draw_menu_row(GContext *ctx, int16_t y, int16_t w, int16_t text_h, bool selected);
+
 // Draw biome-specific background within the given area.
 // biome: BiomeType value (0-5). frame: animation frame for moving elements.
 void ui_draw_biome_bg(GContext *ctx, GRect area, uint8_t biome, uint8_t frame);

@@ -44,6 +44,22 @@ void ui_draw_battery(GContext *ctx, GRect bounds) {
 }
 
 // ---------------------------------------------------------------------------
+// Menu row highlight
+// ---------------------------------------------------------------------------
+
+GColor ui_draw_menu_row(GContext *ctx, int16_t y, int16_t w, int16_t text_h, bool selected) {
+  // Row height = text height + 2px descender padding
+  int16_t row_h = text_h + 3;
+  if (selected) {
+    // Color: dark gray bg, yellow text. B&W: white bg, black text (inverted).
+    graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorDarkGray, GColorWhite));
+    graphics_fill_rect(ctx, GRect(0, y, w, row_h), 0, GCornerNone);
+    return PBL_IF_COLOR_ELSE(GColorYellow, GColorBlack);
+  }
+  return GColorWhite;
+}
+
+// ---------------------------------------------------------------------------
 // Fox sprite — PNG resource drawing
 // ---------------------------------------------------------------------------
 

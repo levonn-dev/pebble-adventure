@@ -151,12 +151,11 @@ static void opt_layer_update(Layer *layer, GContext *ctx) {
   } else {
     // Menu items
     int16_t row_y = 60;
-    graphics_context_set_fill_color(ctx, GColorDarkGray);
-    graphics_fill_rect(ctx, GRect(0, row_y - 1, w, 20), 0, GCornerNone);
-    graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorRed, GColorWhite));
+    ui_draw_menu_row(ctx, row_y, w, 18, true);
+    graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorRed, GColorBlack));
     graphics_draw_text(ctx, "Delete Pet",
       fonts_get_system_font(FONT_KEY_GOTHIC_18),
-      GRect(8, row_y, w - 16, 20),
+      GRect(8, row_y, w - 16, 18),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
     graphics_context_set_text_color(ctx, GColorLightGray);

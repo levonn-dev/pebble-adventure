@@ -14,7 +14,7 @@ static Layer  *s_sel_layer  = NULL;
 static uint8_t s_sel_cursor = 0;
 
 static const char *s_game_names[4] = {
-  "Dodge (AGI)", "Catch (DEX)", "Riddle (INT)", "Treasure (LUK)"
+  "Dodge", "Catch", "Riddle", "Treasure"
 };
 
 static void sel_layer_update(Layer *layer, GContext *ctx) {
@@ -34,17 +34,11 @@ static void sel_layer_update(Layer *layer, GContext *ctx) {
   for (uint8_t i = 0; i < 4; i++) {
     int16_t row_y = 56 + (int16_t)(i * 22);
     bool sel = (s_sel_cursor == i);
-
-    if (sel) {
-      graphics_context_set_fill_color(ctx, GColorDarkGray);
-      graphics_fill_rect(ctx, GRect(0, row_y - 1, w, 20), 0, GCornerNone);
-    }
-
-    graphics_context_set_text_color(ctx,
-      sel ? PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite) : GColorWhite);
+    GColor text_color = ui_draw_menu_row(ctx, row_y, w, 18, sel);
+    graphics_context_set_text_color(ctx, text_color);
     graphics_draw_text(ctx, s_game_names[i],
       fonts_get_system_font(FONT_KEY_GOTHIC_18),
-      GRect(8, row_y, w - 16, 20),
+      GRect(8, row_y, w - 16, 18),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   }
 }

@@ -67,7 +67,7 @@ static void sa_layer_update(Layer *layer, GContext *ctx) {
     int16_t row_y = stats_y + (int16_t)(i * row_h);
     bool sel = (s_sa_row == i);
     if (sel) {
-      graphics_context_set_fill_color(ctx, GColorDarkGray);
+      graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorDarkGray, GColorWhite));
       graphics_fill_rect(ctx, GRect(0, row_y, w, row_h), 0, GCornerNone);
     }
 
@@ -80,8 +80,7 @@ static void sa_layer_update(Layer *layer, GContext *ctx) {
       snprintf(sbuf, sizeof(sbuf), "%s:%d", s_stat_names[i], (int)val);
     }
     graphics_context_set_text_color(ctx,
-      sel ? PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite) : GColorWhite);
-    // Center text vertically within the row highlight
+      sel ? PBL_IF_COLOR_ELSE(GColorYellow, GColorBlack) : GColorWhite);
     int16_t text_y = row_y + (row_h - 14) / 2;
     graphics_draw_text(ctx, sbuf, fonts_get_system_font(FONT_KEY_GOTHIC_14),
       GRect(4, text_y, w - 8, 14),

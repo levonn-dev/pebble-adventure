@@ -77,18 +77,14 @@ static void rd_layer_update(Layer *layer, GContext *ctx) {
     int16_t row_y = 66 + (int16_t)(drawn * 22);
     bool sel = (s_rd_cursor == i);
 
-    if (sel) {
-      graphics_context_set_fill_color(ctx, GColorDarkGray);
-      graphics_fill_rect(ctx, GRect(0, row_y - 1, w, 20), 0, GCornerNone);
-    }
+    GColor text_color = ui_draw_menu_row(ctx, row_y, w, 18, sel);
 
     char label[20];
     snprintf(label, sizeof(label), "%c) %s", 'A' + i, r->answers[i]);
-    graphics_context_set_text_color(ctx,
-      sel ? PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite) : GColorWhite);
+    graphics_context_set_text_color(ctx, text_color);
     graphics_draw_text(ctx, label,
       fonts_get_system_font(FONT_KEY_GOTHIC_18),
-      GRect(8, row_y, w - 16, 20),
+      GRect(8, row_y, w - 16, 18),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
     drawn++;
   }
