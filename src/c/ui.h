@@ -13,7 +13,17 @@ void ui_draw_progress_bar(GContext *ctx, GRect rect, uint32_t value, uint32_t ma
 // Draw battery percentage in top-right corner of bounds.
 void ui_draw_battery(GContext *ctx, GRect bounds);
 
-// Draw placeholder fox using basic shapes centered at 'center'.
-// frame 0-3 drives a simple tail-wag animation.
-// Color build: orange body. B&W build: white body.
+// Fox sprite states
+typedef enum {
+  FOX_IDLE,    // Main screen: standing, ears twitch (2 frames)
+  FOX_WALK,    // Adventure: leg cycle (4 frames)
+  FOX_HAPPY,   // Encounter win, level-up: tail up, bounce
+  FOX_SAD,     // Encounter loss: ears drooped
+  FOX_DIG,     // Treasure hunt: paw digging (2 frames)
+} FoxState;
+
+// Draw fox sprite centered at 'center' in the given state.
+void ui_draw_fox(GContext *ctx, GPoint center, FoxState state, uint8_t frame);
+
+// Deprecated — use ui_draw_fox instead. Remove after all callers updated.
 void ui_draw_fox_placeholder(GContext *ctx, GPoint center, uint8_t frame);
