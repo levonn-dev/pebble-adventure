@@ -20,6 +20,12 @@ const BiomeConfig *biome_get_config(BiomeType biome) {
   return &s_biomes[(uint8_t)biome];
 }
 
+uint32_t biome_step_multiplier(const BiomeConfig *cfg, const Pet *pet) {
+  uint16_t primary   = pet_get_stat(pet, cfg->primary_stat);
+  uint16_t secondary = pet_get_stat(pet, cfg->secondary_stat);
+  return 100 + (primary * 5 / 10) + (secondary * 2 / 10);
+}
+
 // ---------------------------------------------------------------------------
 // Pet
 // ---------------------------------------------------------------------------
@@ -71,9 +77,7 @@ void adventure_init(Adventure *adv, const Pet *pet) {
   // segment_length = ceil(base_steps * 100 / multiplier)
   for (uint8_t i = 0; i < adv->num_segments; i++) {
     const BiomeConfig *cfg = biome_get_config((BiomeType)adv->segments[i]);
-    uint16_t primary   = pet_get_stat(pet, cfg->primary_stat);
-    uint16_t secondary = pet_get_stat(pet, cfg->secondary_stat);
-    uint32_t mult      = 100 + (primary * 5 / 10) + (secondary * 2 / 10);
+    uint32_t mult = biome_step_multiplier(cfg, pet);
     // Ceiling division
     adv->segment_length[i] = (cfg->base_steps * 100 + mult - 1) / mult;
   }

@@ -39,3 +39,7 @@ uint8_t adventure_segment_progress_pct(const Adventure *adv);
 bool adventure_is_complete(const Adventure *adv);
 
 void adventure_add_progress_pct(Adventure *adv, int8_t percent);
+
+// Compute the pet's step multiplier for a biome (percentage, e.g. 100 = 1x).
+// Formula: 100 + floor(primary*5/10) + floor(secondary*2/10)
+uint32_t biome_step_multiplier(const BiomeConfig *cfg, const Pet *pet);

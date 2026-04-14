@@ -4,7 +4,6 @@
 #include <pebble.h>
 
 void ui_draw_status_bar(GContext *ctx, GRect bounds) {
-  light_enable_interaction();
   time_t now = time(NULL);
   struct tm *t = localtime(&now);
   char buf[6];

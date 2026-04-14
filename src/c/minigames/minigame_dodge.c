@@ -177,6 +177,7 @@ static void dg_click_config(void *ctx) {
 }
 
 static void dg_window_load(Window *window) {
+  light_enable(true);
   Pet pet; pet_load(&pet);
   s_dg_agi = pet.agi;
   Layer *root = window_get_root_layer(window);
@@ -189,6 +190,7 @@ static void dg_window_load(Window *window) {
 }
 
 static void dg_window_unload(Window *window) {
+  light_enable(false);
   if (s_dg_timer) { app_timer_cancel(s_dg_timer); s_dg_timer = NULL; }
   layer_destroy(s_dg_layer); s_dg_layer = NULL;
   window_destroy(s_dg_window); s_dg_window = NULL;

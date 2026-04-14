@@ -176,6 +176,7 @@ static void th_click_config(void *ctx) {
 }
 
 static void th_window_load(Window *window) {
+  light_enable(true);
   Layer *root = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(root);
   s_th_layer = layer_create(bounds);
@@ -185,6 +186,7 @@ static void th_window_load(Window *window) {
 }
 
 static void th_window_unload(Window *window) {
+  light_enable(false);
   layer_destroy(s_th_layer); s_th_layer = NULL;
   window_destroy(s_th_window); s_th_window = NULL;
 }

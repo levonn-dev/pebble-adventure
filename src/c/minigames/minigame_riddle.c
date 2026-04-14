@@ -127,6 +127,7 @@ static void rd_click_config(void *ctx) {
 }
 
 static void rd_window_load(Window *window) {
+  light_enable(true);
   Pet pet; pet_load(&pet);
   s_rd_intel = pet.intel;
 
@@ -139,6 +140,7 @@ static void rd_window_load(Window *window) {
 }
 
 static void rd_window_unload(Window *window) {
+  light_enable(false);
   if (s_rd_timer) { app_timer_cancel(s_rd_timer); s_rd_timer = NULL; }
   layer_destroy(s_rd_layer); s_rd_layer = NULL;
   window_destroy(s_rd_window); s_rd_window = NULL;

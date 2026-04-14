@@ -1,5 +1,6 @@
 #include "../screens.h"
 #include "screens_internal.h"
+#include "screen_stat_alloc.h"
 #include "../game_state.h"
 #include "../events.h"
 #include "../stats.h"
@@ -75,9 +76,20 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
 
   // --- IDLE MODE: no active adventure ---
   if (!s_adv_current.active && !adventure_is_complete(&s_adv_current)) {
-    // Fox idle animation (centered, large)
-    GPoint fox_center = GPoint(w / 2, h / 2 - 16);
-    ui_draw_fox_large(ctx, fox_center, FOX_IDLE, s_adv_fox_frame);
+    // Plains background
+    int16_t biome_top = 20;
+    int16_t biome_bottom = h - 56;
+    GRect biome_area = GRect(0, biome_top, w, biome_bottom - biome_top);
+    backgrounds_draw(ctx, biome_area, BIOME_PLAINS);
+    backgrounds_draw_effects(ctx, biome_area, BIOME_PLAINS, 0, s_adv_effect_tick);
+
+    // Fox idle animation — paws on ground line
+    int16_t bg_ground = backgrounds_ground_y(biome_area, BIOME_PLAINS);
+    ui_draw_fox_large(ctx, GPoint(w / 2, bg_ground - 34), FOX_IDLE, s_adv_fox_frame);
+
+    // Dark strip behind bottom text
+    graphics_context_set_fill_color(ctx, GColorBlack);
+    graphics_fill_rect(ctx, GRect(0, h - 56, w, 56), 0, GCornerNone);
 
     // Name + level
     char name_buf[20];
@@ -86,17 +98,20 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
     graphics_context_set_text_color(ctx, GColorWhite);
     graphics_draw_text(ctx, name_buf,
       fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
-      GRect(0, h - 46, w, 18),
+      GRect(0, h - 54, w, 18),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
     // XP bar
     ui_draw_progress_bar(ctx,
-      GRect(8, h - 28, w - 16, 8),
+      GRect(8, h - 36, w - 16, 8),
       s_adv_pet.xp, s_adv_pet.xp_next_level);
 
     // Button hints
+    const char *up_hint = (s_adv_pet.upgrade_points > 0) ? "UP:alloc pts" : "UP:stats";
+    char hint_buf[40];
+    snprintf(hint_buf, sizeof(hint_buf), "%s  SEL:menu  DN:adventure", up_hint);
     graphics_context_set_text_color(ctx, GColorLightGray);
-    graphics_draw_text(ctx, "UP:stats  SEL:menu  DN:adventure",
+    graphics_draw_text(ctx, hint_buf,
       fonts_get_system_font(FONT_KEY_GOTHIC_14),
       GRect(0, h - 18, w, 16),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
@@ -134,12 +149,23 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
   uint8_t pct = adventure_segment_progress_pct(&s_adv_current);
   ui_draw_progress_bar(ctx, GRect(8, 22, w - 16, 10), (uint32_t)pct, 100);
 
+  // Biome name and step modifier
+  uint8_t cur_biome = s_adv_current.segments[seg];
+  const BiomeConfig *cfg = biome_get_config((BiomeType)cur_biome);
+  uint32_t mult = biome_step_multiplier(cfg, &s_adv_pet);
+  char info_buf[28];
+  snprintf(info_buf, sizeof(info_buf), "%s  x%lu.%02lu", cfg->name,
+           (unsigned long)(mult / 100), (unsigned long)(mult % 100));
+  graphics_context_set_text_color(ctx, GColorWhite);
+  graphics_draw_text(ctx, info_buf,
+    fonts_get_system_font(FONT_KEY_GOTHIC_14),
+    GRect(4, 32, w - 8, 16),
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
   // Biome background — visible area from below progress bar to above text strip
-  int16_t ground_y = h / 2 + 8;
   int16_t biome_top = 50;
   int16_t biome_bottom = h - 36;  // above the black text strip
   GRect biome_area = GRect(0, biome_top, w, biome_bottom - biome_top);
-  uint8_t cur_biome = s_adv_current.segments[seg];
   backgrounds_draw(ctx, biome_area, cur_biome);
   backgrounds_draw_effects(ctx, biome_area, cur_biome, 0, s_adv_effect_tick);
 
@@ -156,12 +182,12 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
   // Steps today
   uint32_t steps = (uint32_t)health_service_sum_today(HealthMetricStepCount);
   char steps_buf[20];
-  snprintf(steps_buf, sizeof(steps_buf), "Steps: %lu", (unsigned long)steps);
+  snprintf(steps_buf, sizeof(steps_buf), "Steps Today: %lu", (unsigned long)steps);
   graphics_context_set_text_color(ctx, GColorWhite);
   graphics_draw_text(ctx, steps_buf,
     fonts_get_system_font(FONT_KEY_GOTHIC_14),
     GRect(4, h - 34, w - 8, 16),
-    GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
   // Button hints
   graphics_context_set_text_color(ctx, GColorLightGray);
@@ -238,10 +264,19 @@ static bool adv_dismiss_popup(void) {
   return false;
 }
 
+static void adv_alloc_done(Pet *pet) {
+  pet_save(pet);
+  s_adv_pet = *pet;
+}
+
 static void adv_click_up(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
   if (adv_dismiss_popup()) return;
-  screens_push_stats();
+  if (s_adv_pet.upgrade_points > 0) {
+    screens_push_stat_alloc("ALLOCATE STATS", &s_adv_pet, adv_alloc_done);
+  } else {
+    screens_push_stats();
+  }
 }
 
 static void adv_click_select(ClickRecognizerRef r, void *ctx) {

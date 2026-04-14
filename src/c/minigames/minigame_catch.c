@@ -175,6 +175,7 @@ static void ct_click_config(void *ctx) {
 }
 
 static void ct_window_load(Window *window) {
+  light_enable(true);
   Pet pet; pet_load(&pet);
   s_ct_dex = pet.dex;
   // Pre-compute catch zone so click handler has valid values from the start
@@ -193,6 +194,7 @@ static void ct_window_load(Window *window) {
 }
 
 static void ct_window_unload(Window *window) {
+  light_enable(false);
   if (s_ct_timer) { app_timer_cancel(s_ct_timer); s_ct_timer = NULL; }
   layer_destroy(s_ct_layer); s_ct_layer = NULL;
   window_destroy(s_ct_window); s_ct_window = NULL;
