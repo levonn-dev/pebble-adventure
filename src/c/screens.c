@@ -22,16 +22,69 @@ static const char *s_stat_names[NUM_STATS] = {
   "STR", "DEX", "AGI", "VIT", "INT", "LUK"
 };
 
+// Character cycle order: A-Z a-z 0-9 ! @ # $ % & * - _ + = . , ? ' (space)
+static const char s_char_table[] =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+  "0123456789!@#$%&*-_+=.,?' ";
+#define CHAR_TABLE_LEN ((int)(sizeof(s_char_table) - 1))  // exclude null terminator
+
+// Binary search state for long-press navigation
+static int8_t  s_cr_last_long_dir = 0;   // last long-press direction (+1/-1, 0=none)
+static int16_t s_cr_prev_anchor   = 0;   // previous position before last long-press
+
+static int16_t cr_char_index(char c) {
+  for (int16_t i = 0; i < CHAR_TABLE_LEN; i++) {
+    if (s_char_table[i] == c) return i;
+  }
+  return 0;  // default to 'A'
+}
+
 static void cr_cycle_char(int8_t dir) {
   char c = s_cr_name[s_cr_cursor];
   if (c == '\0') c = 'A';
-  else if (c == ' ') c = (dir > 0) ? 'A' : 'Z';
-  else {
-    c += dir;
-    if (c > 'Z') c = ' ';
-    if (c < 'A') c = ' ';
+  int16_t idx = cr_char_index(c);
+  idx += dir;
+  if (idx >= CHAR_TABLE_LEN) idx = 0;
+  if (idx < 0) idx = CHAR_TABLE_LEN - 1;
+  s_cr_name[s_cr_cursor] = s_char_table[idx];
+  s_cr_last_long_dir = 0;  // reset binary search on single press
+}
+
+static void cr_long_press_char(int8_t dir) {
+  char c = s_cr_name[s_cr_cursor];
+  if (c == '\0') c = 'A';
+  int16_t cur = cr_char_index(c);
+  int16_t target;
+
+  if (s_cr_last_long_dir == 0) {
+    // First long press: jump halfway from current to end in that direction
+    s_cr_prev_anchor = cur;
+    if (dir > 0) {
+      target = cur + (CHAR_TABLE_LEN - 1 - cur) / 2;
+    } else {
+      target = cur / 2;
+    }
+  } else if (dir == s_cr_last_long_dir) {
+    // Same direction: jump halfway from current to end in that direction
+    s_cr_prev_anchor = cur;
+    if (dir > 0) {
+      target = cur + (CHAR_TABLE_LEN - 1 - cur) / 2;
+    } else {
+      target = cur / 2;
+    }
+  } else {
+    // Opposite direction: jump halfway between current and previous anchor
+    int16_t mid = (cur + s_cr_prev_anchor) / 2;
+    s_cr_prev_anchor = cur;
+    target = mid;
   }
-  s_cr_name[s_cr_cursor] = c;
+
+  if (target == cur) target += dir;  // ensure movement
+  if (target >= CHAR_TABLE_LEN) target = CHAR_TABLE_LEN - 1;
+  if (target < 0) target = 0;
+
+  s_cr_last_long_dir = dir;
+  s_cr_name[s_cr_cursor] = s_char_table[target];
 }
 
 static void cr_confirm_name(void) {
@@ -52,7 +105,7 @@ static void cr_layer_update(Layer *layer, GContext *ctx) {
   if (s_cr_phase == 0) {
     // --- Name entry ---
     graphics_context_set_text_color(ctx, GColorWhite);
-    graphics_draw_text(ctx, "NAME YOUR FOX",
+    graphics_draw_text(ctx, "NAME YOUR PET",
       fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
       GRect(0, 26, w, 22),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
@@ -66,7 +119,7 @@ static void cr_layer_update(Layer *layer, GContext *ctx) {
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
     graphics_context_set_text_color(ctx, GColorLightGray);
-    graphics_draw_text(ctx, "UP/DN: letter  BACK: del",
+    graphics_draw_text(ctx, "UP/DN: letter  HOLD: jump",
       fonts_get_system_font(FONT_KEY_GOTHIC_14),
       GRect(0, 92, w, 16),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
@@ -169,10 +222,11 @@ static void cr_click_select(ClickRecognizerRef r, void *ctx) {
       Adventure blank;
       memset(&blank, 0, sizeof(Adventure));
       adventure_save(&blank);
-      // Push main BEFORE removing creation — popping the only window exits the app
+      if (!app_worker_is_running()) app_worker_launch();
+      // Push main on top of creation, then pop creation underneath.
+      // We must push first — an empty stack exits the app.
       screens_push_main();
       window_stack_remove(s_cr_window, false);
-      if (!app_worker_is_running()) app_worker_launch();
     }
   }
   layer_mark_dirty(s_cr_layer);
@@ -195,11 +249,23 @@ static void cr_click_back(ClickRecognizerRef r, void *ctx) {
   layer_mark_dirty(s_cr_layer);
 }
 
+static void cr_long_up(ClickRecognizerRef r, void *ctx) {
+  (void)r; (void)ctx;
+  if (s_cr_phase == 0) { cr_long_press_char(1); layer_mark_dirty(s_cr_layer); }
+}
+
+static void cr_long_down(ClickRecognizerRef r, void *ctx) {
+  (void)r; (void)ctx;
+  if (s_cr_phase == 0) { cr_long_press_char(-1); layer_mark_dirty(s_cr_layer); }
+}
+
 static void cr_click_config(void *ctx) {
   window_single_click_subscribe(BUTTON_ID_UP,    cr_click_up);
   window_single_click_subscribe(BUTTON_ID_DOWN,  cr_click_down);
   window_single_click_subscribe(BUTTON_ID_SELECT, cr_click_select);
   window_single_click_subscribe(BUTTON_ID_BACK,   cr_click_back);
+  window_long_click_subscribe(BUTTON_ID_UP,   500, cr_long_up, NULL);
+  window_long_click_subscribe(BUTTON_ID_DOWN, 500, cr_long_down, NULL);
 }
 
 static void cr_window_load(Window *window) {
@@ -211,10 +277,16 @@ static void cr_window_load(Window *window) {
   window_set_click_config_provider(window, cr_click_config);
 }
 
+static void cr_deferred_destroy(void *data) {
+  Window *w = (Window *)data;
+  if (w) window_destroy(w);
+}
+
 static void cr_window_unload(Window *window) {
   layer_destroy(s_cr_layer);
   s_cr_layer = NULL;
-  window_destroy(s_cr_window);
+  // Defer window_destroy — may be called during a click handler
+  app_timer_register(50, cr_deferred_destroy, s_cr_window);
   s_cr_window = NULL;
 }
 
@@ -428,9 +500,15 @@ static void opt_window_load(Window *window) {
   window_set_click_config_provider(window, opt_click_config);
 }
 
+static void opt_deferred_destroy(void *data) {
+  Window *w = (Window *)data;
+  if (w) window_destroy(w);
+}
+
 static void opt_window_unload(Window *window) {
   layer_destroy(s_opt_layer); s_opt_layer = NULL;
-  window_destroy(s_opt_window); s_opt_window = NULL;
+  app_timer_register(50, opt_deferred_destroy, s_opt_window);
+  s_opt_window = NULL;
 }
 
 static void main_click_up(ClickRecognizerRef r, void *ctx) {
@@ -464,10 +542,16 @@ static void main_window_load(Window *window) {
   s_main_anim_timer = app_timer_register(600, main_anim_callback, NULL);
 }
 
+static void main_deferred_destroy(void *data) {
+  Window *w = (Window *)data;
+  if (w) window_destroy(w);
+}
+
 static void main_window_unload(Window *window) {
   if (s_main_anim_timer) { app_timer_cancel(s_main_anim_timer); s_main_anim_timer = NULL; }
   layer_destroy(s_main_layer); s_main_layer = NULL;
-  window_destroy(s_main_window); s_main_window = NULL;
+  app_timer_register(50, main_deferred_destroy, s_main_window);
+  s_main_window = NULL;
 }
 
 void screens_push_main(void) {
