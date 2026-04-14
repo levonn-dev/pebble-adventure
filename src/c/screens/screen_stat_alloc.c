@@ -135,6 +135,11 @@ static void sa_click_down(ClickRecognizerRef r, void *ctx) {
   layer_mark_dirty(s_sa_layer);
 }
 
+static void sa_deferred_remove(void *data) {
+  Window *w = (Window *)data;
+  if (w) window_stack_remove(w, false);
+}
+
 static void sa_click_select(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
   if (s_sa_show_help) { s_sa_show_help = false; layer_mark_dirty(s_sa_layer); return; }
@@ -145,12 +150,14 @@ static void sa_click_select(ClickRecognizerRef r, void *ctx) {
       s_sa_alloc[s_sa_row]++;
     }
   } else {
-    // Done — invoke callback, then remove this window
+    // Done — invoke callback, then defer removal of this window
     StatAllocDoneCallback cb = s_sa_done_cb;
     Pet pet_copy = s_sa_pet;
     if (cb) cb(&pet_copy);
-    // Callback may push new windows on top, so remove by reference not pop
-    if (s_sa_window) window_stack_remove(s_sa_window, false);
+    if (s_sa_window) {
+      app_timer_register(50, sa_deferred_remove, s_sa_window);
+    }
+    return;  // don't mark dirty — window is being removed
   }
   layer_mark_dirty(s_sa_layer);
 }
