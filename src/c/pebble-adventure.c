@@ -1,5 +1,6 @@
 #include <pebble.h>
 #include "game_state.h"
+#include "events.h"
 #include "screens.h"
 
 static void worker_message_handler(uint16_t type, AppWorkerMessage *message) {
@@ -25,6 +26,20 @@ static void init(void) {
   Adventure adv;
   if (adventure_load(&adv) && adventure_is_complete(&adv)) {
     screens_push_results(adv.total_xp_earned, adv.encounters_total);
+  }
+
+  // Resolve any encounter triggered while app was closed
+  if (persist_exists(PERSIST_KEY_PENDING_ENCOUNTER)) {
+    int32_t enc_id = persist_read_int(PERSIST_KEY_PENDING_ENCOUNTER);
+    if (enc_id >= 0 && enc_id < NUM_ENCOUNTERS) {
+      Adventure enc_adv;
+      if (adventure_load(&enc_adv) && enc_adv.active) {
+        EncounterResult result = encounter_resolve((uint8_t)enc_id, &pet);
+        encounter_apply(&result, &enc_adv);
+        adventure_save(&enc_adv);
+      }
+    }
+    persist_delete(PERSIST_KEY_PENDING_ENCOUNTER);
   }
 
   if (!app_worker_is_running()) {

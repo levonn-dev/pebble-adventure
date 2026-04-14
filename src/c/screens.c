@@ -1,5 +1,6 @@
 #include "screens.h"
 #include "game_state.h"
+#include "events.h"
 #include "stats.h"
 #include "ui.h"
 #include <pebble.h>
@@ -354,10 +355,44 @@ static uint8_t    s_adv_fox_frame  = 0;
 static Adventure  s_adv_current;
 static Pet        s_adv_pet;
 static bool       s_adv_show_info  = false;
+static uint8_t    s_adv_popup_ticks = 0;   // animation ticks remaining (0 = hidden)
+static char       s_adv_popup_title[24];
+static char       s_adv_popup_detail[32];
 
 static const char *s_biome_names[NUM_BIOMES] = {
   "Plains", "Forest", "Water", "Mountain", "Cave", "Storm"
 };
+
+static void adv_resolve_pending_encounter(void) {
+  if (!persist_exists(PERSIST_KEY_PENDING_ENCOUNTER)) return;
+  int32_t enc_id = persist_read_int(PERSIST_KEY_PENDING_ENCOUNTER);
+  if (enc_id < 0 || enc_id >= NUM_ENCOUNTERS) {
+    persist_delete(PERSIST_KEY_PENDING_ENCOUNTER);
+    return;
+  }
+
+  Pet pet;
+  pet_load(&pet);
+  EncounterResult result = encounter_resolve((uint8_t)enc_id, &pet);
+  encounter_apply(&result, &s_adv_current);
+  adventure_save(&s_adv_current);
+
+  snprintf(s_adv_popup_title, sizeof(s_adv_popup_title), "%s: %s",
+           result.encounter_name, result.won ? "WIN" : "LOSE");
+  if (result.progress_change != 0) {
+    snprintf(s_adv_popup_detail, sizeof(s_adv_popup_detail), "%s%d%% progress",
+             result.progress_change > 0 ? "+" : "", (int)result.progress_change);
+  } else if (result.bonus_xp > 0) {
+    snprintf(s_adv_popup_detail, sizeof(s_adv_popup_detail), "+%lu bonus XP",
+             (unsigned long)result.bonus_xp);
+  } else {
+    snprintf(s_adv_popup_detail, sizeof(s_adv_popup_detail), "No effect");
+  }
+  s_adv_popup_ticks = 10;  // 10 ticks x 300ms = 3 seconds
+
+  persist_delete(PERSIST_KEY_PENDING_ENCOUNTER);
+  if (s_adv_layer) layer_mark_dirty(s_adv_layer);
+}
 
 static void adv_layer_update(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
@@ -459,10 +494,32 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
     graphics_draw_text(ctx, ibuf, fonts_get_system_font(FONT_KEY_GOTHIC_14),
       GRect(12, 88, w - 24, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   }
+
+  // Encounter popup overlay
+  if (s_adv_popup_ticks > 0) {
+    GRect popup = GRect(4, h / 2 - 24, w - 8, 48);
+    graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorOxfordBlue, GColorBlack));
+    graphics_fill_rect(ctx, popup, 4, GCornersAll);
+    graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
+    graphics_draw_round_rect(ctx, popup, 4);
+
+    graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
+    graphics_draw_text(ctx, s_adv_popup_title,
+      fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
+      GRect(8, h / 2 - 22, w - 16, 16),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+    graphics_context_set_text_color(ctx, GColorWhite);
+    graphics_draw_text(ctx, s_adv_popup_detail,
+      fonts_get_system_font(FONT_KEY_GOTHIC_14),
+      GRect(8, h / 2 - 4, w - 16, 16),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+  }
 }
 
 static void adv_anim_callback(void *ctx) {
   s_adv_fox_frame = (s_adv_fox_frame + 1) % 4;
+  if (s_adv_popup_ticks > 0) s_adv_popup_ticks--;
   // Don't poll persist here — s_adv_current is refreshed by screens_on_worker_message
   layer_mark_dirty(s_adv_layer);
   s_adv_anim_timer = app_timer_register(300, adv_anim_callback, NULL);
@@ -486,6 +543,12 @@ static void adv_click_config(void *ctx) {
   window_single_click_subscribe(BUTTON_ID_UP,    adv_click_up);
   window_single_click_subscribe(BUTTON_ID_SELECT, adv_click_select);
   // Down reserved for mini-games (Plan 2)
+}
+
+static void adv_window_appear(Window *window) {
+  adventure_load(&s_adv_current);
+  pet_load(&s_adv_pet);
+  if (s_adv_layer) layer_mark_dirty(s_adv_layer);
 }
 
 static void adv_window_load(Window *window) {
@@ -512,6 +575,7 @@ void screens_push_adventure(void) {
   window_set_background_color(s_adv_window, GColorBlack);
   window_set_window_handlers(s_adv_window, (WindowHandlers) {
     .load   = adv_window_load,
+    .appear = adv_window_appear,
     .unload = adv_window_unload
   });
   window_stack_push(s_adv_window, true);
@@ -760,11 +824,13 @@ void screens_push_levelup(Pet *pet) {
 void screens_on_worker_message(uint16_t type, AppWorkerMessage *message) {
   (void)message;
   adventure_load(&s_adv_current);
-  // Update main screen's cached adventure state
   s_main_has_active_adv = s_adv_current.active;
   if (s_adv_layer)  layer_mark_dirty(s_adv_layer);
   if (s_main_layer) layer_mark_dirty(s_main_layer);
-  if (type == WORKER_MSG_ADVENTURE_DONE) {
+
+  if (type == WORKER_MSG_ENCOUNTER) {
+    adv_resolve_pending_encounter();
+  } else if (type == WORKER_MSG_ADVENTURE_DONE) {
     vibes_short_pulse();
   }
 }
