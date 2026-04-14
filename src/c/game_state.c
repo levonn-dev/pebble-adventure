@@ -47,3 +47,79 @@ bool pet_load(Pet *pet) {
 void pet_save(const Pet *pet) {
   persist_write_data(PERSIST_KEY_PET, pet, sizeof(Pet));
 }
+
+// ---------------------------------------------------------------------------
+// Adventure
+// ---------------------------------------------------------------------------
+void adventure_init(Adventure *adv, const Pet *pet) {
+  memset(adv, 0, sizeof(Adventure));
+  adv->active = true;
+
+  // 5-8 segments
+  adv->num_segments = 5 + (uint8_t)(rand() % 4);
+
+  // Biomes weighted loosely easy-to-hard:
+  // max allowed biome index increases as segment index increases
+  for (uint8_t i = 0; i < adv->num_segments; i++) {
+    uint8_t max_biome = 1 + (i * NUM_BIOMES / adv->num_segments);
+    if (max_biome > NUM_BIOMES) max_biome = NUM_BIOMES;
+    adv->segments[i] = (uint8_t)(rand() % max_biome);
+  }
+
+  // Pre-compute effective step length per segment from current stats.
+  // multiplier = 100 + floor(primary*5/10) + floor(secondary*2/10)
+  // segment_length = ceil(base_steps * 100 / multiplier)
+  for (uint8_t i = 0; i < adv->num_segments; i++) {
+    const BiomeConfig *cfg = biome_get_config((BiomeType)adv->segments[i]);
+    uint16_t primary   = pet_get_stat(pet, cfg->primary_stat);
+    uint16_t secondary = pet_get_stat(pet, cfg->secondary_stat);
+    uint32_t mult      = 100 + (primary * 5 / 10) + (secondary * 2 / 10);
+    // Ceiling division
+    adv->segment_length[i] = (cfg->base_steps * 100 + mult - 1) / mult;
+  }
+}
+
+bool adventure_load(Adventure *adv) {
+  if (!persist_exists(PERSIST_KEY_ADVENTURE)) return false;
+  persist_read_data(PERSIST_KEY_ADVENTURE, adv, sizeof(Adventure));
+  return true;
+}
+
+void adventure_save(const Adventure *adv) {
+  persist_write_data(PERSIST_KEY_ADVENTURE, adv, sizeof(Adventure));
+}
+
+void adventure_apply_steps(Adventure *adv, uint32_t steps) {
+  uint32_t remaining = steps;
+  while (remaining > 0 && adv->current_segment < adv->num_segments) {
+    uint32_t seg_remaining = adv->segment_length[adv->current_segment]
+                           - adv->segment_progress[adv->current_segment];
+    if (remaining >= seg_remaining) {
+      adv->segment_progress[adv->current_segment] =
+        adv->segment_length[adv->current_segment];
+      remaining -= seg_remaining;
+      // Accumulate XP: (segment_index * 50) + (biome_difficulty * 30)
+      uint8_t diff = biome_get_config((BiomeType)adv->segments[adv->current_segment])->difficulty;
+      adv->total_xp_earned += (uint32_t)(adv->current_segment * 50) + (uint32_t)(diff * 30);
+      adv->current_segment++;
+    } else {
+      adv->segment_progress[adv->current_segment] += remaining;
+      remaining = 0;
+    }
+  }
+  if (adv->current_segment >= adv->num_segments) {
+    adv->active = false;
+  }
+}
+
+uint8_t adventure_segment_progress_pct(const Adventure *adv) {
+  if (adv->current_segment >= adv->num_segments) return 100;
+  uint32_t length   = adv->segment_length[adv->current_segment];
+  if (length == 0) return 100;
+  uint32_t progress = adv->segment_progress[adv->current_segment];
+  return (uint8_t)((progress * 100) / length);
+}
+
+bool adventure_is_complete(const Adventure *adv) {
+  return !adv->active && adv->num_segments > 0;
+}
