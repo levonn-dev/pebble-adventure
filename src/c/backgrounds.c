@@ -83,20 +83,6 @@ static void draw_fallback(GContext *ctx, GRect area, uint8_t biome) {
   graphics_fill_rect(ctx, area, 0, GCornerNone);
 }
 
-// Per-biome ground color sampled from each image's bottom row so the
-// fill below the bitmap blends seamlessly with the ground strip.
-static GColor bg_ground_color(uint8_t biome) {
-  switch ((BiomeType)biome) {
-    case BIOME_PLAINS:   return PBL_IF_COLOR_ELSE(GColorFromRGB(85, 85, 0),     GColorDarkGray);
-    case BIOME_FOREST:   return PBL_IF_COLOR_ELSE(GColorFromRGB(170, 85, 85),   GColorDarkGray);
-    case BIOME_WATER:    return PBL_IF_COLOR_ELSE(GColorFromRGB(85, 85, 85),    GColorDarkGray);
-    case BIOME_MOUNTAIN: return PBL_IF_COLOR_ELSE(GColorFromRGB(85, 85, 85),    GColorDarkGray);
-    case BIOME_CAVE:     return PBL_IF_COLOR_ELSE(GColorFromRGB(85, 85, 85),    GColorBlack);
-    case BIOME_STORM:    return PBL_IF_COLOR_ELSE(GColorFromRGB(170, 85, 85),   GColorBlack);
-    default:             return GColorBlack;
-  }
-}
-
 void backgrounds_draw(GContext *ctx, GRect area, uint8_t biome) {
   ensure_loaded(biome);
   if (!s_current_bg) {
@@ -105,20 +91,32 @@ void backgrounds_draw(GContext *ctx, GRect area, uint8_t biome) {
   }
 
   GSize img = gbitmap_get_bounds(s_current_bg).size;
+  int16_t draw_w = img.w < area.size.w ? img.w : area.size.w;
 
-  // Fill the entire area with the ground color first, so any excess
-  // below the bitmap shows ground instead of tiled sky.
-  graphics_context_set_fill_color(ctx, bg_ground_color(biome));
-  graphics_fill_rect(ctx, area, 0, GCornerNone);
-
-  // Draw the bitmap at native size, aligned to the top of the area.
-  // The rect matches the bitmap's dimensions exactly, so Pebble won't
-  // tile — it just clips if the bitmap extends beyond the area.
-  GRect dest = GRect(area.origin.x, area.origin.y,
-                     img.w < area.size.w ? img.w : area.size.w,
-                     img.h < area.size.h ? img.h : area.size.h);
+  // Align the bitmap to the BOTTOM of the area so the ground strip
+  // lines up with where the fox walks. If the image is taller than the
+  // area, trim from the top via a sub-bitmap. If shorter, fill the
+  // gap above with the fallback color (sky).
   graphics_context_set_compositing_mode(ctx, GCompOpAssign);
-  graphics_draw_bitmap_in_rect(ctx, s_current_bg, dest);
+
+  if (img.h >= area.size.h) {
+    // Image is taller (or equal) — crop from top, draw full area height
+    int16_t trim = img.h - area.size.h;
+    GBitmap *sub = gbitmap_create_as_sub_bitmap(s_current_bg,
+      GRect(0, trim, draw_w, area.size.h));
+    if (sub) {
+      graphics_draw_bitmap_in_rect(ctx, sub, area);
+      gbitmap_destroy(sub);
+    } else {
+      draw_fallback(ctx, area, biome);
+    }
+  } else {
+    // Image is shorter — fill sky color above, draw image at bottom
+    int16_t gap = area.size.h - img.h;
+    draw_fallback(ctx, GRect(area.origin.x, area.origin.y, area.size.w, gap), biome);
+    GRect dest = GRect(area.origin.x, area.origin.y + gap, draw_w, img.h);
+    graphics_draw_bitmap_in_rect(ctx, s_current_bg, dest);
+  }
 }
 
 // ---------------------------------------------------------------------------
