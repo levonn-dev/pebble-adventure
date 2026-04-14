@@ -114,15 +114,13 @@ static void cr_layer_update(Layer *layer, GContext *ctx) {
       GRect(0, 26, w, 22),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
-    // Show name with cursor underscore at current position
-    char display[14];
+    // Show name with bracket cursor: "Fo[x]" or "Fox[ ]"
+    char display[20];
     uint8_t len = (uint8_t)strlen(s_cr_name);
-    if (s_cr_cursor < len) {
-      // Mid-name: show chars before cursor, underscore, chars after
-      snprintf(display, sizeof(display), "%s_", s_cr_name);
-    } else {
-      snprintf(display, sizeof(display), "%s_", s_cr_name);
-    }
+    char before[12] = {0};
+    if (s_cr_cursor > 0) memcpy(before, s_cr_name, s_cr_cursor);
+    char cur_ch = (s_cr_cursor < len) ? s_cr_name[s_cr_cursor] : ' ';
+    snprintf(display, sizeof(display), "%s[%c]", before, cur_ch);
     graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
     graphics_draw_text(ctx, display,
       fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
@@ -325,7 +323,7 @@ static void cr_click_config(void *ctx) {
   window_single_click_subscribe(BUTTON_ID_UP,    cr_click_up);
   window_single_click_subscribe(BUTTON_ID_DOWN,  cr_click_down);
   window_single_click_subscribe(BUTTON_ID_SELECT, cr_click_select);
-  window_single_click_subscribe(BUTTON_ID_BACK,   cr_click_back);
+  window_single_repeating_click_subscribe(BUTTON_ID_BACK, 0, cr_click_back);
   window_long_click_subscribe(BUTTON_ID_UP,     500, cr_long_up, NULL);
   window_long_click_subscribe(BUTTON_ID_DOWN,   500, cr_long_down, NULL);
   window_long_click_subscribe(BUTTON_ID_SELECT, 500, cr_long_select, NULL);
