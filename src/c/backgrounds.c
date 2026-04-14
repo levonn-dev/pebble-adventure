@@ -272,16 +272,14 @@ static void effects_cave(GContext *ctx, GRect area, uint8_t tick) {
   int16_t sparkle_range = ground - 5 - top_20;  // 20px from top to 5px above ground
   int16_t drip_range = ground - top_20;          // 20px from top to ground
 
-  // Twinkling crystal sparkles — 8 sparkles, random positions between
-  // 20px from biome top and 5px above ground line. Flicker on/off.
+  // Twinkling crystal sparkles — positions change every frame using tick
+  // as part of the hash seed so they appear at random locations each frame.
   if (sparkle_range > 0) {
     graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorCeleste, GColorWhite));
-    for (uint8_t i = 0; i < 8; i++) {
-      if (((tick + i * 3) % 6) < 3) {  // visible ~50% of the time
-        int16_t cx = (int16_t)(bg_hash(i, 40) % area.size.w) + area.origin.x;
-        int16_t cy = top_20 + (int16_t)(bg_hash(i, 41) % sparkle_range);
-        graphics_fill_circle(ctx, GPoint(cx, cy), 1);
-      }
+    for (uint8_t i = 0; i < 6; i++) {
+      int16_t cx = (int16_t)(bg_hash(tick * 7 + i, 40) % area.size.w) + area.origin.x;
+      int16_t cy = top_20 + (int16_t)(bg_hash(tick * 7 + i, 41) % sparkle_range);
+      graphics_fill_circle(ctx, GPoint(cx, cy), 1);
     }
   }
 
