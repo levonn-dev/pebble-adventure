@@ -1,31 +1,44 @@
 #include <pebble.h>
-#include "stats.h"
 #include "game_state.h"
+#include "screens.h"
+
+static void worker_message_handler(uint16_t type, AppWorkerMessage *message) {
+  screens_on_worker_message(type, message);
+}
+
+static void init(void) {
+  srand(time(NULL));
+
+  // Subscribe to worker messages before pushing any window
+  app_worker_message_subscribe(worker_message_handler);
+
+  Pet pet;
+  if (!pet_load(&pet)) {
+    // New game — go straight to creation
+    screens_push_creation();
+    return;
+  }
+
+  screens_push_main();
+
+  // If adventure completed in background, push results on top of main
+  Adventure adv;
+  if (adventure_load(&adv) && adventure_is_complete(&adv)) {
+    screens_push_results(adv.total_xp_earned, adv.encounters_total);
+  }
+
+  if (!app_worker_is_running()) {
+    app_worker_launch();
+  }
+}
+
+static void deinit(void) {
+  app_worker_message_unsubscribe();
+}
 
 int main(void) {
-  // Temporary math verification — remove in Task 8
-  APP_LOG(APP_LOG_LEVEL_INFO, "XP L1->2:  %lu (expect 150)", (uint32_t)stats_xp_to_next_level(1));
-  APP_LOG(APP_LOG_LEVEL_INFO, "XP L10->11: %lu (expect 844)", (uint32_t)stats_xp_to_next_level(10));
-  APP_LOG(APP_LOG_LEVEL_INFO, "Cost @1:   %d (expect 1)",  (int)stats_upgrade_cost(1));
-  APP_LOG(APP_LOG_LEVEL_INFO, "Cost @100: %d (expect 2)",  (int)stats_upgrade_cost(100));
-  APP_LOG(APP_LOG_LEVEL_INFO, "Cost @999: %d (expect 10)", (int)stats_upgrade_cost(999));
-
-  // Adventure generation test
-  Pet tp;
-  pet_init_new(&tp, "Tester");
-  tp.str = 11; tp.vit = 11;
-  Adventure ta;
-  adventure_init(&ta, &tp);
-  APP_LOG(APP_LOG_LEVEL_INFO, "Adventure: %d segs", (int)ta.num_segments);
-  for (int i = 0; i < ta.num_segments; i++) {
-    APP_LOG(APP_LOG_LEVEL_INFO, "  seg%d biome=%d len=%lu",
-            i, (int)ta.segments[i], ta.segment_length[i]);
-  }
-  // Simulate 500 steps
-  adventure_apply_steps(&ta, 500);
-  APP_LOG(APP_LOG_LEVEL_INFO, "After 500 steps: seg=%d xp=%lu",
-          (int)ta.current_segment, ta.total_xp_earned);
-
+  init();
   app_event_loop();
+  deinit();
   return 0;
 }
