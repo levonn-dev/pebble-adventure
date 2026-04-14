@@ -143,7 +143,7 @@ static int16_t bg_ground_offset(uint8_t biome) {
     case BIOME_PLAINS:   return 24;
     case BIOME_FOREST:   return 22;
     case BIOME_WATER:    return 22;
-    case BIOME_MOUNTAIN: return 18;
+    case BIOME_MOUNTAIN: return 20;
     case BIOME_CAVE:     return 20;
     case BIOME_STORM:    return 22;
     default:             return 20;
@@ -240,12 +240,14 @@ static void effects_water(GContext *ctx, GRect area, uint8_t tick) {
 }
 
 static void effects_mountain(GContext *ctx, GRect area, uint8_t tick) {
-  // Drifting snow particles — tiny white pixels falling slowly with a slight drift.
-  graphics_context_set_stroke_color(ctx, GColorWhite);
+  // Drifting snow particles — light blue so they're visible against white
+  // mountain peaks. Drift right-to-left and fall slowly.
+  graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorCeleste, GColorLightGray));
   for (uint8_t i = 0; i < 8; i++) {
-    int16_t sx = (int16_t)((bg_hash(i, 30) + tick) % area.size.w) + area.origin.x;
+    int16_t sx = (int16_t)(((uint32_t)bg_hash(i, 30) + (uint32_t)area.size.w * 256
+                            - (uint32_t)(tick)) % area.size.w) + area.origin.x;
     int16_t sy = (int16_t)((bg_hash(i, 31) + tick * 2) % area.size.h) + area.origin.y;
-    graphics_draw_pixel(ctx, GPoint(sx, sy));
+    graphics_fill_circle(ctx, GPoint(sx, sy), 1);
   }
 }
 
