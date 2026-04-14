@@ -126,7 +126,7 @@ void backgrounds_draw(GContext *ctx, GRect area, uint8_t biome) {
 // ---------------------------------------------------------------------------
 static int16_t bg_ground_offset(uint8_t biome) {
   switch ((BiomeType)biome) {
-    case BIOME_PLAINS:   return 32;
+    case BIOME_PLAINS:   return 24;
     case BIOME_FOREST:   return 22;
     case BIOME_WATER:    return 22;
     case BIOME_MOUNTAIN: return 18;
@@ -145,23 +145,29 @@ int16_t backgrounds_ground_y(GRect area, uint8_t biome) {
 // ---------------------------------------------------------------------------
 
 static void effects_plains(GContext *ctx, GRect area, uint8_t tick) {
-  // Drifting clouds: small white dots that slowly move horizontally across
-  // the top of the area. Positions are deterministic per index, offset by tick.
+  // Drifting clouds: each cloud is a cluster of overlapping filled circles
+  // to create a fluffy shape. Two clouds drift slowly across the sky.
   graphics_context_set_fill_color(ctx, GColorWhite);
-  for (uint8_t i = 0; i < 3; i++) {
+  for (uint8_t i = 0; i < 2; i++) {
     uint16_t x_seed = bg_hash(i, 0);
-    int16_t  cx = (int16_t)((x_seed + tick * 2) % area.size.w) + area.origin.x;
-    int16_t  cy = area.origin.y + 6 + (int16_t)(bg_hash(i, 1) % 10);
-    graphics_fill_circle(ctx, GPoint(cx, cy), 2);
+    int16_t cx = (int16_t)(((uint32_t)x_seed + (uint32_t)(tick) * 1) % area.size.w) + area.origin.x;
+    int16_t cy = area.origin.y + 8 + (int16_t)(bg_hash(i, 1) % 8);
+    // Draw a cloud shape: wide flat cluster of circles
+    graphics_fill_circle(ctx, GPoint(cx,     cy),     4);  // center
+    graphics_fill_circle(ctx, GPoint(cx - 5, cy + 1), 3);  // left
+    graphics_fill_circle(ctx, GPoint(cx + 5, cy + 1), 3);  // right
+    graphics_fill_circle(ctx, GPoint(cx - 2, cy - 2), 3);  // top-left
+    graphics_fill_circle(ctx, GPoint(cx + 2, cy - 2), 3);  // top-right
   }
-  // Pollen/seed particles: tiny specks drifting across the middle band.
-  // Skip pollen if the area is too short to contain the middle band.
-  if (area.size.h > 40) {
+
+  // Pollen/seed particles: tiny specks drifting across the upper-middle band.
+  if (area.size.h > 60) {
     graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
     for (uint8_t i = 0; i < 5; i++) {
       uint16_t x_seed = bg_hash(i, 2);
-      int16_t  px = (int16_t)((x_seed + tick * 3) % area.size.w) + area.origin.x;
-      int16_t  py = area.origin.y + 30 + (int16_t)(bg_hash(i, 3) % (area.size.h - 40));
+      int16_t px = (int16_t)((x_seed + tick * 3) % area.size.w) + area.origin.x;
+      // Keep pollen in the upper half of the area (above the ground/hills)
+      int16_t py = area.origin.y + 20 + (int16_t)(bg_hash(i, 3) % (area.size.h / 2));
       graphics_draw_pixel(ctx, GPoint(px, py));
     }
   }
