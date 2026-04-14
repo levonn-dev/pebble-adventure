@@ -102,7 +102,12 @@ static bool     s_opt_confirm = false;
 
 #define OPT_VIBRATION 0
 #define OPT_DELETE    1
+#ifdef DEBUG_MODE
+#define OPT_SKIP_SEG  2
+#define OPT_COUNT     3
+#else
 #define OPT_COUNT     2
+#endif
 
 static void opt_layer_update(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
@@ -166,12 +171,24 @@ static void opt_layer_update(Layer *layer, GContext *ctx) {
     // Delete pet
     int16_t row1_y = row0_y + 24;
     GColor c1 = ui_draw_menu_row(ctx, row1_y, w, 18, s_opt_cursor == OPT_DELETE);
+    (void)c1;
     graphics_context_set_text_color(ctx,
       s_opt_cursor == OPT_DELETE ? PBL_IF_COLOR_ELSE(GColorRed, GColorBlack) : PBL_IF_COLOR_ELSE(GColorRed, GColorWhite));
     graphics_draw_text(ctx, "Delete Pet",
       fonts_get_system_font(FONT_KEY_GOTHIC_18),
       GRect(8, row1_y, w - 16, 18),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+
+#ifdef DEBUG_MODE
+    // Debug: skip segment
+    int16_t row2_y = row1_y + 24;
+    GColor c2 = ui_draw_menu_row(ctx, row2_y, w, 18, s_opt_cursor == OPT_SKIP_SEG);
+    graphics_context_set_text_color(ctx, c2);
+    graphics_draw_text(ctx, "[DBG] Skip Seg",
+      fonts_get_system_font(FONT_KEY_GOTHIC_18),
+      GRect(8, row2_y, w - 16, 18),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+#endif
 
     graphics_context_set_text_color(ctx, GColorLightGray);
     graphics_draw_text(ctx, "BACK: Return",
@@ -219,6 +236,24 @@ static void opt_click_select(ClickRecognizerRef r, void *ctx) {
     s_opt_confirm = true;
     layer_mark_dirty(s_opt_layer);
   }
+#ifdef DEBUG_MODE
+  else if (s_opt_cursor == OPT_SKIP_SEG) {
+    Adventure adv;
+    if (adventure_load(&adv) && adv.active && adv.current_segment < adv.num_segments) {
+      // Complete current segment
+      adv.segment_progress[adv.current_segment] = adv.segment_length[adv.current_segment];
+      uint8_t diff = adv.segments[adv.current_segment] + 1;
+      adv.total_xp_earned += (uint32_t)(adv.current_segment * 50) + (uint32_t)(diff * 30);
+      adv.current_segment++;
+      if (adv.current_segment >= adv.num_segments) {
+        adv.active = false;
+      }
+      adventure_save(&adv);
+      s_main_has_active_adv = adv.active;
+    }
+    layer_mark_dirty(s_opt_layer);
+  }
+#endif
 }
 
 static void opt_click_back(ClickRecognizerRef r, void *ctx) {

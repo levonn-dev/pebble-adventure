@@ -3,6 +3,10 @@
 #include <stdbool.h>
 #include <string.h>
 
+// --- Debug ---
+// Uncomment to enable debug options in the options menu
+#define DEBUG_MODE 1
+
 // --- Constants ---
 #define MAX_SEGMENTS  8
 #define NUM_BIOMES    6
