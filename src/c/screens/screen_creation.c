@@ -93,7 +93,7 @@ static void cr_stat_alloc_done(Pet *pet) {
   memset(&blank, 0, sizeof(Adventure));
   adventure_save(&blank);
   if (!app_worker_is_running()) app_worker_launch();
-  screens_push_main();
+  screens_push_adventure();
   // The stat alloc screen will pop itself via window_stack_pop.
   // Remove creation window underneath.
   if (s_cr_window) {

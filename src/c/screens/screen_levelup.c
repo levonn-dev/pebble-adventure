@@ -10,8 +10,7 @@
 
 static void lu_done(Pet *pet) {
   pet_save(pet);
-  // stat alloc pops itself after calling this callback
-  screens_push_main();
+  // stat alloc pops itself — returns to adventure screen
 }
 
 void screens_push_levelup(Pet *pet) {

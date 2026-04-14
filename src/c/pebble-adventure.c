@@ -24,7 +24,7 @@ static void init(void) {
     return;
   }
 
-  screens_push_main();
+  screens_push_adventure();
 
   // If adventure completed in background, push results on top of main
   Adventure adv;
