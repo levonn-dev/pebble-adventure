@@ -178,7 +178,7 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
 
   // Encounter popup queue
   if (s_adv_popup_index < s_adv_popup_count) {
-    GRect popup = GRect(4, h / 2 - 32, w - 8, 64);
+    GRect popup = GRect(4, h / 2 - (34 - ((s_adv_popup_count > 1) * 6)), w - 8, 64);
     graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorOxfordBlue, GColorBlack));
     graphics_fill_rect(ctx, popup, 4, GCornersAll);
     graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
