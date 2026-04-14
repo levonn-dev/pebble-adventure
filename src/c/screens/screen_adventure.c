@@ -26,6 +26,14 @@ static const char *s_biome_names[NUM_BIOMES] = {
   "Plains", "Forest", "Water", "Mountain", "Cave", "Storm"
 };
 
+void adv_queue_popup(const char *title, const char *detail, bool won) {
+  snprintf(s_adv_popup_title, sizeof(s_adv_popup_title), "%s", title);
+  snprintf(s_adv_popup_detail, sizeof(s_adv_popup_detail), "%s", detail);
+  s_adv_popup_won = won;
+  s_adv_popup_ticks = 10;
+  if (s_adv_layer) layer_mark_dirty(s_adv_layer);
+}
+
 void adv_resolve_pending_encounter(void) {
   if (!persist_exists(PERSIST_KEY_PENDING_ENCOUNTER)) return;
   int32_t enc_id = persist_read_int(PERSIST_KEY_PENDING_ENCOUNTER);

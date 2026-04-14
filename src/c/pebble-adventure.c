@@ -2,6 +2,7 @@
 #include "game_state.h"
 #include "events.h"
 #include "screens.h"
+#include "screens/screens_internal.h"
 #include "sprites.h"
 
 static void worker_message_handler(uint16_t type, AppWorkerMessage *message) {
@@ -39,6 +40,21 @@ static void init(void) {
         EncounterResult result = encounter_resolve((uint8_t)enc_id, &pet);
         encounter_apply(&result, &enc_adv);
         adventure_save(&enc_adv);
+        // Queue popup so user sees what happened
+        char title[24];
+        snprintf(title, sizeof(title), "%s: %s",
+                 result.encounter_name, result.won ? "WIN" : "LOSE");
+        char detail[32];
+        if (result.progress_change != 0) {
+          snprintf(detail, sizeof(detail), "%s%d%% progress",
+                   result.progress_change > 0 ? "+" : "", (int)result.progress_change);
+        } else if (result.bonus_xp > 0) {
+          snprintf(detail, sizeof(detail), "+%lu bonus XP", (unsigned long)result.bonus_xp);
+        } else {
+          snprintf(detail, sizeof(detail), "No effect");
+        }
+        adv_queue_popup(title, detail, result.won);
+        vibes_short_pulse();
       }
     }
     persist_delete(PERSIST_KEY_PENDING_ENCOUNTER);
