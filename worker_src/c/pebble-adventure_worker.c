@@ -111,8 +111,10 @@ static void health_handler(HealthEventType event, void *context) {
       s_steps_in_window -= 100;
       if ((rand() % 100) < 15) {
         uint8_t enc_id = (uint8_t)(rand() % NUM_ENCOUNTERS);
-        persist_write_int(PERSIST_KEY_PENDING_ENCOUNTER, (int32_t)enc_id);
         adv.encounters_total++;
+        // Save adventure BEFORE sending message to avoid race with app resolution
+        persist_write_data(PERSIST_KEY_ADVENTURE, &adv, sizeof(WorkerAdventure));
+        persist_write_int(PERSIST_KEY_PENDING_ENCOUNTER, (int32_t)enc_id);
         AppWorkerMessage enc_msg = {
           .data0 = enc_id,
           .data1 = 0

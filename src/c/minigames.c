@@ -494,6 +494,11 @@ static void ct_click_config(void *ctx) {
 static void ct_window_load(Window *window) {
   Pet pet; pet_load(&pet);
   s_ct_dex = pet.dex;
+  // Pre-compute catch zone so click handler has valid values from the start
+  GRect pre_bounds = layer_get_bounds(window_get_root_layer(window));
+  s_ct_catch_zone_h = 20 + (int16_t)(s_ct_dex / 10);
+  if (s_ct_catch_zone_h > 60) s_ct_catch_zone_h = 60;
+  s_ct_catch_zone_y = pre_bounds.size.h - 40 - s_ct_catch_zone_h / 2;
   Layer *root = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(root);
   s_ct_layer = layer_create(bounds);
@@ -529,9 +534,10 @@ static void minigame_push_catch(void) {
 // ---------------------------------------------------------------------------
 // RIDDLE MINI-GAME (INT)
 // ---------------------------------------------------------------------------
-static Window  *s_rd_window  = NULL;
-static Layer   *s_rd_layer   = NULL;
-static uint8_t  s_rd_cursor  = 0;
+static Window   *s_rd_window  = NULL;
+static Layer    *s_rd_layer   = NULL;
+static AppTimer *s_rd_timer   = NULL;
+static uint8_t   s_rd_cursor  = 0;
 static uint8_t  s_rd_riddle_idx = 0;
 static bool     s_rd_done    = false;
 static bool     s_rd_won     = false;
@@ -638,7 +644,7 @@ static void rd_click_select(ClickRecognizerRef r, void *ctx) {
   }
 
   layer_mark_dirty(s_rd_layer);
-  app_timer_register(3000, rd_pop_callback, NULL);
+  s_rd_timer = app_timer_register(3000, rd_pop_callback, NULL);
 }
 
 static void rd_click_config(void *ctx) {
@@ -660,6 +666,7 @@ static void rd_window_load(Window *window) {
 }
 
 static void rd_window_unload(Window *window) {
+  if (s_rd_timer) { app_timer_cancel(s_rd_timer); s_rd_timer = NULL; }
   layer_destroy(s_rd_layer); s_rd_layer = NULL;
   window_destroy(s_rd_window); s_rd_window = NULL;
 }
@@ -887,7 +894,7 @@ static void minigame_push_treasure(void) {
   memset(s_th_spots, 0, sizeof(s_th_spots));
 
   uint8_t placed = 0;
-  while (placed < num_large) {
+  for (uint8_t tries = 0; tries < 64 && placed < num_large; tries++) {
     uint8_t pos = (uint8_t)(rand() % TREASURE_SPOTS);
     if (s_th_spots[pos] == SPOT_EMPTY) {
       s_th_spots[pos] = SPOT_LARGE;
@@ -895,7 +902,7 @@ static void minigame_push_treasure(void) {
     }
   }
   placed = 0;
-  while (placed < num_small) {
+  for (uint8_t tries = 0; tries < 64 && placed < num_small; tries++) {
     uint8_t pos = (uint8_t)(rand() % TREASURE_SPOTS);
     if (s_th_spots[pos] == SPOT_EMPTY) {
       s_th_spots[pos] = SPOT_SMALL;
