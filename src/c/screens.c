@@ -256,7 +256,7 @@ static void main_layer_update(Layer *layer, GContext *ctx) {
 
   // Fox in upper quarter
   GPoint fox_center = GPoint(w / 2, h / 4 + 4);
-  ui_draw_fox_placeholder(ctx, fox_center, s_main_fox_frame);
+  ui_draw_fox(ctx, fox_center, FOX_IDLE, s_main_fox_frame);
 
   // Name + level
   char name_buf[20];
@@ -359,6 +359,7 @@ static bool       s_adv_show_info  = false;
 static uint8_t    s_adv_popup_ticks = 0;   // animation ticks remaining (0 = hidden)
 static char       s_adv_popup_title[24];
 static char       s_adv_popup_detail[32];
+static bool       s_adv_popup_won = false;
 
 static const char *s_biome_names[NUM_BIOMES] = {
   "Plains", "Forest", "Water", "Mountain", "Cave", "Storm"
@@ -390,6 +391,7 @@ static void adv_resolve_pending_encounter(void) {
     snprintf(s_adv_popup_detail, sizeof(s_adv_popup_detail), "No effect");
   }
   s_adv_popup_ticks = 10;  // 10 ticks x 300ms = 3 seconds
+  s_adv_popup_won = result.won;
 
   persist_delete(PERSIST_KEY_PENDING_ENCOUNTER);
   if (s_adv_layer) layer_mark_dirty(s_adv_layer);
@@ -445,14 +447,13 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
     GRect(4, 34, w - 8, 16),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
-  // Ground line
+  // Biome background
   int16_t ground_y = h / 2 + 8;
-  graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorDarkGray, GColorWhite));
-  graphics_context_set_stroke_width(ctx, 1);
-  graphics_draw_line(ctx, GPoint(0, ground_y), GPoint(w, ground_y));
+  GRect biome_area = GRect(0, 50, w, ground_y - 50 + (h - ground_y));
+  ui_draw_biome_bg(ctx, biome_area, s_adv_current.segments[seg], s_adv_fox_frame);
 
   // Walking fox
-  ui_draw_fox_placeholder(ctx, GPoint(w / 3, ground_y - 12), s_adv_fox_frame);
+  ui_draw_fox(ctx, GPoint(w / 3, ground_y - 12), FOX_WALK, s_adv_fox_frame);
 
   // Steps today
   uint32_t steps = (uint32_t)health_service_sum_today(HealthMetricStepCount);
@@ -504,16 +505,20 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
     graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
     graphics_draw_round_rect(ctx, popup, 4);
 
+    // Fox reaction
+    ui_draw_fox(ctx, GPoint(20, h / 2 - 8),
+                s_adv_popup_won ? FOX_HAPPY : FOX_SAD, 0);
+
     graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
     graphics_draw_text(ctx, s_adv_popup_title,
       fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
-      GRect(8, h / 2 - 22, w - 16, 16),
+      GRect(36, h / 2 - 22, w - 44, 16),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
     graphics_context_set_text_color(ctx, GColorWhite);
     graphics_draw_text(ctx, s_adv_popup_detail,
       fonts_get_system_font(FONT_KEY_GOTHIC_14),
-      GRect(8, h / 2 - 4, w - 16, 16),
+      GRect(36, h / 2 - 4, w - 44, 16),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
   }
 }
@@ -720,6 +725,9 @@ static void lu_layer_update(Layer *layer, GContext *ctx) {
     fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
     GRect(0, 24, w, 22),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+  // Happy fox
+  ui_draw_fox(ctx, GPoint(w - 24, 30), FOX_HAPPY, 0);
 
   char pts_buf[20];
   snprintf(pts_buf, sizeof(pts_buf), "Points: %d", (int)s_lu_pet.upgrade_points);
