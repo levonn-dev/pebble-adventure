@@ -267,30 +267,42 @@ static void effects_mountain(GContext *ctx, GRect area, uint8_t tick) {
 }
 
 static void effects_cave(GContext *ctx, GRect area, uint8_t tick) {
-  // Twinkling crystal sparkles in the middle-to-lower area where the
-  // cave scenery actually is (image is bottom-aligned).
-  graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorCeleste, GColorWhite));
-  for (uint8_t i = 0; i < 5; i++) {
-    if (((tick + i * 5) % 8) < 3) {
-      int16_t cx = (int16_t)(bg_hash(i, 40) % area.size.w) + area.origin.x;
-      // Place sparkles in the lower 2/3 of the area
-      int16_t cy = area.origin.y + area.size.h / 3
-                 + (int16_t)(bg_hash(i, 41) % (area.size.h * 2 / 3));
-      graphics_fill_circle(ctx, GPoint(cx, cy), 1);
+  int16_t ground = area.origin.y + area.size.h - bg_ground_offset(BIOME_CAVE);
+  int16_t drip_top = area.origin.y + 20;       // drips start within top 20px of bg
+  int16_t sparkle_top = area.origin.y + 20;     // sparkles start at drip lower bound
+  int16_t sparkle_bottom = ground + 5;          // sparkles extend 5px below ground
+  int16_t sparkle_range = sparkle_bottom - sparkle_top;
+  int16_t drip_range = ground - drip_top;       // full fall distance
+
+  // Twinkling crystal sparkles — random positions between 20px from top
+  // and 5px below the ground line.
+  if (sparkle_range > 0) {
+    graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorCeleste, GColorWhite));
+    for (uint8_t i = 0; i < 5; i++) {
+      if (((tick + i * 5) % 8) < 3) {
+        int16_t cx = (int16_t)(bg_hash(i, 40) % area.size.w) + area.origin.x;
+        int16_t cy = sparkle_top + (int16_t)(bg_hash(i, 41) % sparkle_range);
+        graphics_fill_circle(ctx, GPoint(cx, cy), 1);
+      }
     }
   }
 
-  // Water drips falling from the ceiling. Two drip columns active at a
-  // time, animated downward. Each drip is a short vertical streak that
-  // falls from the upper area downward over several ticks.
-  graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorCeleste, GColorWhite));
-  for (uint8_t d = 0; d < 2; d++) {
-    // Each drip restarts every 16 ticks, staggered by 8 ticks between the two
-    uint8_t phase = (tick + d * 8) % 16;
-    int16_t dx = (int16_t)(bg_hash(d + (tick / 16) * 2, 42) % area.size.w) + area.origin.x;
-    int16_t dy = area.origin.y + area.size.h / 4 + (int16_t)(phase * 4);
-    if (dy + 8 < area.origin.y + area.size.h) {
-      graphics_draw_line(ctx, GPoint(dx, dy), GPoint(dx, dy + 8));
+  // Water drips falling from the ceiling (top 20px) down to the ground.
+  // 3 drips active, each at a random x, cycling at different rates.
+  if (drip_range > 0) {
+    graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorCeleste, GColorWhite));
+    for (uint8_t d = 0; d < 3; d++) {
+      // Each drip has its own cycle length for varied timing
+      uint8_t cycle = 14 + (bg_hash(d, 43) % 8);  // 14-21 ticks per cycle
+      uint8_t phase = (tick + bg_hash(d, 44)) % cycle;
+      int16_t t_frac = (int16_t)(phase * drip_range / cycle);  // progress 0..drip_range
+      int16_t dx = (int16_t)(bg_hash(d + (uint16_t)(tick / cycle) * 3, 42) % area.size.w) + area.origin.x;
+      int16_t dy = drip_top + t_frac;
+      int16_t streak_end = dy + 8;
+      if (streak_end > ground) streak_end = ground;
+      if (dy < ground) {
+        graphics_draw_line(ctx, GPoint(dx, dy), GPoint(dx, streak_end));
+      }
     }
   }
 }
