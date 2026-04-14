@@ -146,12 +146,13 @@ int16_t backgrounds_ground_y(GRect area, uint8_t biome) {
 
 static void effects_plains(GContext *ctx, GRect area, uint8_t tick) {
   // Drifting clouds: each cloud is a cluster of overlapping filled circles
-  // to create a fluffy shape. Two clouds drift slowly across the sky.
+  // to create a fluffy shape. Two clouds drift right-to-left across the sky.
   graphics_context_set_fill_color(ctx, GColorWhite);
   for (uint8_t i = 0; i < 2; i++) {
     uint16_t x_seed = bg_hash(i, 0);
-    int16_t cx = (int16_t)(((uint32_t)x_seed + (uint32_t)(tick) * 1) % area.size.w) + area.origin.x;
-    int16_t cy = area.origin.y + 8 + (int16_t)(bg_hash(i, 1) % 8);
+    int16_t cx = (int16_t)(((uint32_t)x_seed + (uint32_t)area.size.w * 256
+                            - (uint32_t)(tick)) % area.size.w) + area.origin.x;
+    int16_t cy = area.origin.y + 18 + (int16_t)(bg_hash(i, 1) % 8);
     // Draw a cloud shape: wide flat cluster of circles
     graphics_fill_circle(ctx, GPoint(cx,     cy),     4);  // center
     graphics_fill_circle(ctx, GPoint(cx - 5, cy + 1), 3);  // left
@@ -160,15 +161,16 @@ static void effects_plains(GContext *ctx, GRect area, uint8_t tick) {
     graphics_fill_circle(ctx, GPoint(cx + 2, cy - 2), 3);  // top-right
   }
 
-  // Pollen/seed particles: tiny specks drifting across the upper-middle band.
+  // Pollen/seed particles: tiny yellow specks drifting right-to-left
+  // in the middle band between sky and ground.
   if (area.size.h > 60) {
-    graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
-    for (uint8_t i = 0; i < 5; i++) {
+    graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
+    for (uint8_t i = 0; i < 8; i++) {
       uint16_t x_seed = bg_hash(i, 2);
-      int16_t px = (int16_t)((x_seed + tick * 3) % area.size.w) + area.origin.x;
-      // Keep pollen in the upper half of the area (above the ground/hills)
-      int16_t py = area.origin.y + 20 + (int16_t)(bg_hash(i, 3) % (area.size.h / 2));
-      graphics_draw_pixel(ctx, GPoint(px, py));
+      int16_t px = (int16_t)(((uint32_t)x_seed + (uint32_t)area.size.w * 256
+                              - (uint32_t)(tick * 2)) % area.size.w) + area.origin.x;
+      int16_t py = area.origin.y + 30 + (int16_t)(bg_hash(i, 3) % (area.size.h / 3));
+      graphics_fill_circle(ctx, GPoint(px, py), 0);  // single pixel but via fill for visibility
     }
   }
 }
