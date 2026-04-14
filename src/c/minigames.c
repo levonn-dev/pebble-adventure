@@ -216,7 +216,7 @@ static void dg_layer_update(Layer *layer, GContext *ctx) {
 
   // Fox
   int16_t fox_x = dg_lane_x(s_dg_lane, w);
-  ui_draw_fox_placeholder(ctx, GPoint(fox_x, ground_y - 12), (uint8_t)(s_dg_ticks / 3));
+  ui_draw_fox(ctx, GPoint(fox_x, ground_y - 12), FOX_WALK, (uint8_t)(s_dg_ticks / 3));
 
   // Rocks
   graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorRed, GColorWhite));
@@ -430,7 +430,7 @@ static void ct_layer_update(Layer *layer, GContext *ctx) {
   }
 
   // Fox at bottom
-  ui_draw_fox_placeholder(ctx, GPoint(w / 2, h - 16), 0);
+  ui_draw_fox(ctx, GPoint(w / 2, h - 16), FOX_IDLE, 0);
 
   // Hint
   graphics_context_set_text_color(ctx, GColorLightGray);
@@ -803,12 +803,20 @@ static void th_layer_update(Layer *layer, GContext *ctx) {
     } else {
       result_text = "Empty... +5%";
     }
+    // Fox reaction to find
+    int16_t fox_y = grid_y + 2 * (cell_h + 4) + 16;
+    ui_draw_fox(ctx, GPoint(w / 2, fox_y),
+                s_th_pick != SPOT_EMPTY ? FOX_HAPPY : FOX_SAD, 0);
     graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorYellow, GColorWhite));
     graphics_draw_text(ctx, result_text,
       fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
       GRect(0, h - 36, w, 20),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
   } else {
+    // Digging fox follows cursor
+    int16_t fox_y = grid_y + 2 * (cell_h + 4) + 16;
+    int16_t fox_x = grid_x + (s_th_cursor % 4) * cell_w + cell_w / 2;
+    ui_draw_fox(ctx, GPoint(fox_x, fox_y), FOX_DIG, (uint8_t)(time(NULL) % 2));
     graphics_context_set_text_color(ctx, GColorLightGray);
     graphics_draw_text(ctx, "UP/DN: move  SEL: dig",
       fonts_get_system_font(FONT_KEY_GOTHIC_14),
