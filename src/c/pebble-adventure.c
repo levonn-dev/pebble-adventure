@@ -4,6 +4,7 @@
 #include "screens.h"
 #include "screens/screens_internal.h"
 #include "sprites.h"
+#include "backgrounds.h"
 #include "ui.h"
 
 static void worker_message_handler(uint16_t type, AppWorkerMessage *message) {
@@ -13,6 +14,7 @@ static void worker_message_handler(uint16_t type, AppWorkerMessage *message) {
 static void init(void) {
   srand(time(NULL));
   sprites_init();
+  backgrounds_init();
 
   // Subscribe to worker messages before pushing any window
   app_worker_message_subscribe(worker_message_handler);
@@ -58,6 +60,7 @@ static void init(void) {
 
 static void deinit(void) {
   app_worker_message_unsubscribe();
+  backgrounds_deinit();
   sprites_deinit();
 }
 

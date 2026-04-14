@@ -43,7 +43,3 @@ void ui_set_vibration(bool enabled);
 void ui_vibe_short(void);
 void ui_vibe_double(void);
 void ui_vibe_long(void);
-
-// Draw biome-specific background within the given area.
-// biome: BiomeType value (0-5). frame: animation frame for moving elements.
-void ui_draw_biome_bg(GContext *ctx, GRect area, uint8_t biome, uint8_t frame);
