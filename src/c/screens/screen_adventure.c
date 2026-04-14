@@ -139,12 +139,15 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
   int16_t biome_top = 50;
   int16_t biome_bottom = h - 36;  // above the black text strip
   GRect biome_area = GRect(0, biome_top, w, biome_bottom - biome_top);
-  backgrounds_draw(ctx, biome_area, s_adv_current.segments[seg]);
-  backgrounds_draw_effects(ctx, biome_area, s_adv_current.segments[seg],
-                           0, s_adv_effect_tick);
+  uint8_t cur_biome = s_adv_current.segments[seg];
+  backgrounds_draw(ctx, biome_area, cur_biome);
+  backgrounds_draw_effects(ctx, biome_area, cur_biome, 0, s_adv_effect_tick);
 
-  // Walking fox (large)
-  ui_draw_fox_large(ctx, GPoint(w / 2, ground_y - 12), FOX_WALK, s_adv_fox_frame);
+  // Walking fox (large) — align paws to per-biome ground line.
+  // The sprite is drawn centered; offset by half the sprite height so
+  // the bottom of the sprite (paws) touches the ground surface.
+  int16_t bg_ground = backgrounds_ground_y(biome_area, cur_biome);
+  ui_draw_fox_large(ctx, GPoint(w / 2, bg_ground - 40), FOX_WALK, s_adv_fox_frame);
 
   // Dark strip behind bottom text for readability on B&W
   graphics_context_set_fill_color(ctx, GColorBlack);

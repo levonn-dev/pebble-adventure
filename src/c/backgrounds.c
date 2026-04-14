@@ -120,6 +120,27 @@ void backgrounds_draw(GContext *ctx, GRect area, uint8_t biome) {
 }
 
 // ---------------------------------------------------------------------------
+// Per-biome ground surface offset — pixels from the BOTTOM of the biome
+// area to where the ground surface is (where the fox's paws should land).
+// Tune these values per biome to match each background image's ground line.
+// ---------------------------------------------------------------------------
+static int16_t bg_ground_offset(uint8_t biome) {
+  switch ((BiomeType)biome) {
+    case BIOME_PLAINS:   return 32;
+    case BIOME_FOREST:   return 22;
+    case BIOME_WATER:    return 22;
+    case BIOME_MOUNTAIN: return 18;
+    case BIOME_CAVE:     return 18;
+    case BIOME_STORM:    return 28;
+    default:             return 20;
+  }
+}
+
+int16_t backgrounds_ground_y(GRect area, uint8_t biome) {
+  return area.origin.y + area.size.h - bg_ground_offset(biome);
+}
+
+// ---------------------------------------------------------------------------
 // Procedural effect overlays — drawn on top of the background bitmap.
 // ---------------------------------------------------------------------------
 

@@ -20,6 +20,12 @@ void backgrounds_deinit(void);
 // If the bitmap fails to load, fills `area` with a solid fallback color.
 void backgrounds_draw(GContext *ctx, GRect area, uint8_t biome);
 
+// Return the ground surface y-coordinate within the given area for the
+// specified biome. The fox's paws should align to this y value. Each biome
+// has a different ground line based on its background art. Values are
+// tunable — adjust the per-biome constants in backgrounds.c if needed.
+int16_t backgrounds_ground_y(GRect area, uint8_t biome);
+
 // Draw biome-specific procedural overlays on top of the already-drawn
 // background bitmap. Must be called AFTER backgrounds_draw() and BEFORE
 // the fox is drawn, so the fox appears in front of effects.
