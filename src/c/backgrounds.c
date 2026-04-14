@@ -285,15 +285,19 @@ static void effects_cave(GContext *ctx, GRect area, uint8_t tick) {
     }
   }
 
-  // Water drips — 2 drips, each picks a random x at the top of the biome
-  // and falls straight down to the ground line.
+  // Water drips — 2 blue drips falling straight down from top to ground.
+  // x is locked for the entire fall and only changes when a new cycle starts.
   if (drip_range > 0) {
-    graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorCeleste, GColorWhite));
+    graphics_context_set_stroke_color(ctx, PBL_IF_COLOR_ELSE(GColorBlueMoon, GColorWhite));
     for (uint8_t d = 0; d < 2; d++) {
       uint8_t cycle = 20 + (bg_hash(d, 43) % 10);  // 20-29 ticks per cycle
-      uint8_t phase = (tick + bg_hash(d, 44)) % cycle;
-      // x is fixed for the entire fall (random per cycle)
-      int16_t dx = (int16_t)(bg_hash(d + (uint16_t)(tick / cycle) * 2, 42) % area.size.w) + area.origin.x;
+      // Use the same offset for both phase and cycle_idx so x only
+      // changes when phase wraps back to 0 (start of a new fall).
+      uint16_t offset = bg_hash(d, 44);
+      uint16_t adjusted = (uint16_t)(tick + offset);
+      uint8_t phase = adjusted % cycle;
+      uint16_t cycle_idx = adjusted / cycle;
+      int16_t dx = (int16_t)(bg_hash(d + cycle_idx * 2, 42) % area.size.w) + area.origin.x;
       // y falls from top_20 straight down to ground
       int16_t dy = top_20 + (int16_t)((uint32_t)phase * drip_range / cycle);
       int16_t streak_end = dy + 6;
