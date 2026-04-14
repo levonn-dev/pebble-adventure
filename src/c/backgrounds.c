@@ -41,18 +41,32 @@ static uint32_t bg_resource_id(uint8_t biome) {
 static void ensure_loaded(uint8_t biome) {
   if (biome == s_current_biome && s_current_bg) return;
 
+  APP_LOG(APP_LOG_LEVEL_INFO, "bg: switching %d -> %d, heap_free=%u",
+          (int)s_current_biome, (int)biome, (unsigned)heap_bytes_free());
+
   if (s_current_bg) {
     gbitmap_destroy(s_current_bg);
     s_current_bg = NULL;
   }
   s_current_biome = BG_NONE;
 
+  APP_LOG(APP_LOG_LEVEL_INFO, "bg: after free, heap_free=%u",
+          (unsigned)heap_bytes_free());
+
   uint32_t rid = bg_resource_id(biome);
-  if (rid == 0) return;
+  if (rid == 0) {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "bg: no resource id for biome %d", (int)biome);
+    return;
+  }
 
   s_current_bg = gbitmap_create_with_resource(rid);
   if (s_current_bg) {
     s_current_biome = biome;
+    APP_LOG(APP_LOG_LEVEL_INFO, "bg: loaded biome %d OK, heap_free=%u",
+            (int)biome, (unsigned)heap_bytes_free());
+  } else {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "bg: FAILED to load biome %d rid=%lu, heap_free=%u",
+            (int)biome, (unsigned long)rid, (unsigned)heap_bytes_free());
   }
 }
 
@@ -130,7 +144,7 @@ static int16_t bg_ground_offset(uint8_t biome) {
     case BIOME_FOREST:   return 22;
     case BIOME_WATER:    return 22;
     case BIOME_MOUNTAIN: return 18;
-    case BIOME_CAVE:     return 18;
+    case BIOME_CAVE:     return 20;
     case BIOME_STORM:    return 22;
     default:             return 20;
   }
@@ -176,13 +190,28 @@ static void effects_plains(GContext *ctx, GRect area, uint8_t tick) {
 }
 
 static void effects_forest(GContext *ctx, GRect area, uint8_t tick) {
-  // Falling leaves: small colored dots drifting downward with slight horizontal sway.
-  for (uint8_t i = 0; i < 6; i++) {
+  // Falling leaves: small leaf shapes drifting down with horizontal sway.
+  // Each leaf is drawn as two short lines forming a "V" shape, rotated
+  // slightly based on its sway direction to look like a tumbling leaf.
+  for (uint8_t i = 0; i < 5; i++) {
     int16_t x0 = (int16_t)(bg_hash(i, 10) % area.size.w) + area.origin.x;
-    int16_t sway = (int16_t)((tick + i * 3) % 8) - 4;
-    int16_t y  = (int16_t)((bg_hash(i, 11) + tick * 2) % area.size.h) + area.origin.y;
-    graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorOrange, GColorLightGray));
-    graphics_fill_circle(ctx, GPoint(x0 + sway, y), 1);
+    int16_t sway = (int16_t)((tick + i * 3) % 12) - 6;
+    int16_t y = (int16_t)((bg_hash(i, 11) + tick * 2) % area.size.h) + area.origin.y;
+    int16_t lx = x0 + sway;
+
+    // Alternate leaf colors: orange and yellow-green
+    GColor leaf_color = (i % 2 == 0)
+      ? PBL_IF_COLOR_ELSE(GColorOrange, GColorLightGray)
+      : PBL_IF_COLOR_ELSE(GColorChromeYellow, GColorWhite);
+    graphics_context_set_stroke_color(ctx, leaf_color);
+    graphics_context_set_fill_color(ctx, leaf_color);
+
+    // Draw leaf as a small diamond/oval: center dot + 4 directional pixels
+    // The shape tilts based on sway direction (left or right lean)
+    int16_t tilt = (sway > 0) ? 1 : -1;
+    graphics_fill_circle(ctx, GPoint(lx, y), 1);            // center 3x3
+    graphics_draw_pixel(ctx, GPoint(lx + tilt * 2, y - 1)); // tip
+    graphics_draw_pixel(ctx, GPoint(lx - tilt * 2, y + 1)); // tail
   }
 }
 
