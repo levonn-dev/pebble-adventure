@@ -4,7 +4,7 @@
 #include "../game_state.h"
 #include "../stats.h"
 #include "../ui.h"
-#include "../riddles.h"
+#include "riddles.h"
 #include <pebble.h>
 #include <stdlib.h>
 
