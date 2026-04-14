@@ -11,7 +11,7 @@ void ui_draw_time(GContext *ctx, GRect bounds) {
   strftime(buf, sizeof(buf), clock_is_24h_style() ? "%H:%M" : "%I:%M", t);
   graphics_context_set_text_color(ctx, GColorWhite);
   graphics_draw_text(ctx, buf,
-    fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
+    fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
     GRect(4, 2, 60, 22),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 }
@@ -40,7 +40,7 @@ void ui_draw_battery(GContext *ctx, GRect bounds) {
   graphics_context_set_text_color(ctx, GColorWhite);
   graphics_draw_text(ctx, buf,
     fonts_get_system_font(FONT_KEY_GOTHIC_14),
-    GRect(bounds.size.w - 36, 4, 34, 16),
+    GRect(bounds.size.w - 36, 2, 34, 16),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentRight, NULL);
 }
 

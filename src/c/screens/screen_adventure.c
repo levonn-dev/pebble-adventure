@@ -79,13 +79,12 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
   graphics_context_set_fill_color(ctx, GColorBlack);
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
 
-  // Time -- always visible top-left
+  // Time & Battery -- always visible top
   ui_draw_time(ctx, bounds);
+  ui_draw_battery(ctx, bounds);
 
   // --- IDLE MODE: no active adventure ---
   if (!s_adv_current.active && !adventure_is_complete(&s_adv_current)) {
-    ui_draw_battery(ctx, bounds);
-
     // Fox idle animation (centered)
     GPoint fox_center = GPoint(w / 2, h / 2 - 10);
     ui_draw_fox(ctx, fox_center, FOX_IDLE, s_adv_fox_frame);
@@ -97,12 +96,12 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
     graphics_context_set_text_color(ctx, GColorWhite);
     graphics_draw_text(ctx, name_buf,
       fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
-      GRect(0, h / 2 + 10, w, 18),
+      GRect(0, h - 46, w, 18),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
     // XP bar
     ui_draw_progress_bar(ctx,
-      GRect(8, h / 2 + 30, w - 16, 8),
+      GRect(8, h - 28, w - 16, 8),
       s_adv_pet.xp, s_adv_pet.xp_next_level);
 
     // Button hints
@@ -132,28 +131,18 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
   // --- ACTIVE MODE: adventure in progress ---
   uint8_t seg = s_adv_current.current_segment;
 
-  // Segment counter top-right
+  // Segment counter top-center
   char seg_buf[12];
   snprintf(seg_buf, sizeof(seg_buf), "Seg %d/%d", (int)(seg + 1), (int)s_adv_current.num_segments);
   graphics_context_set_text_color(ctx, GColorWhite);
   graphics_draw_text(ctx, seg_buf,
     fonts_get_system_font(FONT_KEY_GOTHIC_14),
-    GRect(w - 62, 2, 60, 16),
-    GTextOverflowModeTrailingEllipsis, GTextAlignmentRight, NULL);
+    GRect(0, 2, w, 16),
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
   // Progress bar
   uint8_t pct = adventure_segment_progress_pct(&s_adv_current);
   ui_draw_progress_bar(ctx, GRect(8, 22, w - 16, 10), (uint32_t)pct, 100);
-
-  // Biome + pct label
-  const char *bname = (s_adv_current.segments[seg] < NUM_BIOMES) ? s_biome_names[s_adv_current.segments[seg]] : "?";
-  char biome_buf[20];
-  snprintf(biome_buf, sizeof(biome_buf), "%s  %d%%", bname, (int)pct);
-  graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorCyan, GColorWhite));
-  graphics_draw_text(ctx, biome_buf,
-    fonts_get_system_font(FONT_KEY_GOTHIC_14),
-    GRect(4, 34, w - 8, 16),
-    GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
   // Biome background
   int16_t ground_y = h / 2 + 8;

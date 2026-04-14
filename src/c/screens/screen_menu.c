@@ -122,7 +122,6 @@ static void menu_click_select(ClickRecognizerRef r, void *ctx) {
   if (s_menu_cursor == 0) {
     // "New Adventure" or "Games"
     if (s_menu_has_adv) {
-      window_stack_pop(false);
       minigames_push_selection();
     } else {
       Pet pet;
