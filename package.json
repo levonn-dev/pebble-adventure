@@ -1,0 +1,22 @@
+{
+  "name": "pebble-adventure",
+  "author": "eX",
+  "version": "1.0.0",
+  "keywords": ["pebble-app", "game"],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "Pebble Adventure",
+    "uuid": "3454caa5-0b26-4136-b272-7afcba06621c",
+    "sdkVersion": "3",
+    "enableMultiJS": false,
+    "targetPlatforms": ["emery", "flint"],
+    "watchapp": {
+      "watchface": false
+    },
+    "capabilities": ["health"],
+    "resources": {
+      "media": []
+    }
+  }
+}
