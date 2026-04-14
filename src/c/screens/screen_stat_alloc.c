@@ -193,9 +193,15 @@ static void sa_window_load(Window *window) {
   window_set_click_config_provider(window, sa_click_config);
 }
 
+static void sa_deferred_destroy(void *data) {
+  Window *w = (Window *)data;
+  if (w) window_destroy(w);
+}
+
 static void sa_window_unload(Window *window) {
   layer_destroy(s_sa_layer); s_sa_layer = NULL;
-  window_destroy(s_sa_window); s_sa_window = NULL;
+  app_timer_register(50, sa_deferred_destroy, s_sa_window);
+  s_sa_window = NULL;
 }
 
 void screens_push_stat_alloc(const char *title, Pet *pet, StatAllocDoneCallback done_cb) {
