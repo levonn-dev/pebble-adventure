@@ -30,6 +30,8 @@ void sprites_init(void) {
 
   s_fox_dig[0]   = gbitmap_create_with_resource(RESOURCE_ID_FOX_DIG_0);
   s_fox_dig[1]   = gbitmap_create_with_resource(RESOURCE_ID_FOX_DIG_1);
+
+  sprites_load_large();
 }
 
 void sprites_deinit(void) {
@@ -38,6 +40,7 @@ void sprites_deinit(void) {
   for (int i = 0; i < HAPPY_FRAMES; i++) { if (s_fox_happy[i]) { gbitmap_destroy(s_fox_happy[i]); s_fox_happy[i] = NULL; } }
   for (int i = 0; i < SAD_FRAMES; i++)   { if (s_fox_sad[i])   { gbitmap_destroy(s_fox_sad[i]);   s_fox_sad[i] = NULL; } }
   for (int i = 0; i < DIG_FRAMES; i++)   { if (s_fox_dig[i])   { gbitmap_destroy(s_fox_dig[i]);   s_fox_dig[i] = NULL; } }
+  sprites_unload_large();
 }
 
 GBitmap *sprites_get_fox(FoxState state, uint8_t frame) {

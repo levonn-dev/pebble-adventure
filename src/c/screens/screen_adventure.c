@@ -4,7 +4,6 @@
 #include "../events.h"
 #include "../stats.h"
 #include "../ui.h"
-#include "../sprites.h"
 #include "../minigames.h"
 #include <pebble.h>
 
@@ -292,7 +291,6 @@ static void adv_window_appear(Window *window) {
 static void adv_window_load(Window *window) {
   adventure_load(&s_adv_current);
   pet_load(&s_adv_pet);
-  sprites_load_large();
   Layer *root = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(root);
   s_adv_layer = layer_create(bounds);
@@ -304,7 +302,6 @@ static void adv_window_load(Window *window) {
 
 static void adv_window_unload(Window *window) {
   if (s_adv_anim_timer) { app_timer_cancel(s_adv_anim_timer); s_adv_anim_timer = NULL; }
-  sprites_unload_large();
   layer_destroy(s_adv_layer); s_adv_layer = NULL;
   window_destroy(s_adv_window); s_adv_window = NULL;
 }
