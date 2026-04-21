@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2026 levonn-dev
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 #include "../screens.h"
 #include "screens_internal.h"
 #include "screen_stat_alloc.h"

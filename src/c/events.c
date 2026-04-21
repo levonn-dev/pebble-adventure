@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2026 levonn-dev
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 #include "events.h"
 #include "game_state.h"
 #include "stats.h"

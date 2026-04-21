@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2026 levonn-dev
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 #include "stats.h"
 #include <math.h>
 #include <pebble.h>

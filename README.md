@@ -118,3 +118,18 @@ pebble logs
    corresponding pop/result callback, following the pattern in `minigame_dodge.c`.
 2. Add the menu entry to `s_minigame_items[]` in `minigame_menu.c` and wire the selection callback.
 3. The existing window stack push/pop pattern handles cleanup with no extra registration needed.
+
+---
+
+## License
+
+Pebble Adventure uses a split license:
+
+- **Code** (everything under `src/`, `worker_src/`, `tools/`, plus build files) is licensed under
+  the **GNU General Public License v3.0**. See [`LICENSE`](LICENSE).
+- **Art and other creative assets** (everything under `resources/`, `screenshots/`, and `docs/`) is
+  licensed under **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International**
+  (CC BY-NC-SA 4.0). See [`LICENSE-ASSETS`](LICENSE-ASSETS).
+
+In short: you're welcome to fork, learn from, and build on the code under GPL-3.0 terms, but the
+pixel art and screenshots may not be used in commercial works without permission.
