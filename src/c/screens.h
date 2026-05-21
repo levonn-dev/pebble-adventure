@@ -12,6 +12,7 @@ typedef enum {
   WORKER_MSG_SEGMENT_DONE   = 1,
   WORKER_MSG_ADVENTURE_DONE = 2,
   WORKER_MSG_ENCOUNTER      = 3,
+  WORKER_MSG_AUTO_DONE      = 4,
 } WorkerMsgType;
 
 void screens_push_creation(void);

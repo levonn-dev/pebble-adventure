@@ -67,6 +67,19 @@ void ui_vibe_double(void) { if (ui_vibration_enabled()) vibes_double_pulse(); }
 void ui_vibe_long(void)   { if (ui_vibration_enabled()) vibes_long_pulse(); }
 
 // ---------------------------------------------------------------------------
+// Auto-Adventure
+// ---------------------------------------------------------------------------
+
+bool ui_auto_adventure_enabled(void) {
+  if (!persist_exists(PERSIST_KEY_AUTO_ADVENTURE)) return false;
+  return persist_read_int(PERSIST_KEY_AUTO_ADVENTURE) != 0;
+}
+
+void ui_set_auto_adventure(bool enabled) {
+  persist_write_int(PERSIST_KEY_AUTO_ADVENTURE, enabled ? 1 : 0);
+}
+
+// ---------------------------------------------------------------------------
 // Backlight management
 // ---------------------------------------------------------------------------
 

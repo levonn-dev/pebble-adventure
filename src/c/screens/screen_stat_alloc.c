@@ -6,6 +6,7 @@
 #include "screen_stat_alloc.h"
 #include "screens_internal.h"
 #include "../screens.h"
+#include "../game_state.h"
 #include "../stats.h"
 #include "../ui.h"
 #include <pebble.h>
@@ -155,10 +156,28 @@ static void sa_click_select(ClickRecognizerRef r, void *ctx) {
       s_sa_alloc[s_sa_row]++;
     }
   } else {
-    // Done — invoke callback, then defer removal of this window
+    // Done - merge against the latest on-disk pet so any worker-applied
+    // level-ups that happened while this screen was open are preserved.
+    // The worker only ADDS upgrade_points (never spends), so the on-disk pet
+    // has at least as many points as our entry snapshot; replaying each
+    // allocation against the disk copy will succeed.
+    Pet on_disk;
+    if (pet_load(&on_disk)) {
+      for (uint8_t i = 0; i < NUM_STATS; i++) {
+        for (uint16_t k = 0; k < s_sa_alloc[i]; k++) {
+          uint16_t v = pet_get_stat(&on_disk, i);
+          if (stats_raise_stat(&v, &on_disk.upgrade_points)) {
+            pet_set_stat(&on_disk, i, v);
+          }
+        }
+      }
+    } else {
+      // No persisted pet yet (first-time creation flow) - use our copy.
+      on_disk = s_sa_pet;
+    }
+
     StatAllocDoneCallback cb = s_sa_done_cb;
-    Pet pet_copy = s_sa_pet;
-    if (cb) cb(&pet_copy);
+    if (cb) cb(&on_disk);
     if (s_sa_window) {
       app_timer_register(50, sa_deferred_remove, s_sa_window);
     }

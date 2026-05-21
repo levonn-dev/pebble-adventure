@@ -24,6 +24,8 @@
 #define PERSIST_KEY_WORKER_STEPS  3
 #define PERSIST_KEY_PENDING_ENCOUNTER 4
 #define PERSIST_KEY_VIBRATION        5  // 0 = off, 1 = on (default on)
+#define PERSIST_KEY_AUTO_ADVENTURE   6  // 0 = off, 1 = on (default off)
+#define PERSIST_KEY_AUTO_SUMMARY     7  // AutoSummary struct, only when count > 0
 
 #define NUM_ENCOUNTERS 5
 
@@ -34,6 +36,16 @@
 #define STAT_IDX_VIT  3
 #define STAT_IDX_INT  4
 #define STAT_IDX_LUK  5
+
+// --- Auto-Adventure ---
+// Accumulated tally of adventures that auto-completed while the app was closed
+// (or while the user was on a non-adventure screen). Written by worker, read
+// and cleared by app on next adventure-screen interaction or app open.
+typedef struct {
+  uint8_t  count;   // adventures completed in this batch
+  uint16_t levels;  // total levels gained
+  uint32_t xp;      // total XP earned (sum of total_xp_earned across runs)
+} AutoSummary;
 
 // --- Biome Types ---
 typedef enum {

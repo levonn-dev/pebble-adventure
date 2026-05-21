@@ -8,15 +8,33 @@
 // ---------------------------------------------------------------------------
 // Struct copies — MUST match src/c/shared_types.h exactly.
 // Workers cannot include app headers, so these are duplicated here.
-// If you change Pet or Adventure in shared_types.h, update these too.
-// COUPLING: WorkerMsgType values must match the enum in src/c/screens.h.
+// COUPLING (must stay in sync with):
+//   src/c/shared_types.h   - Pet, Adventure, AutoSummary, PERSIST_KEY_*, STAT_IDX_*
+//   src/c/screens.h        - WorkerMsgType enum values
+//   src/c/game_state.c     - s_biomes[] table, adventure_init, biome_step_multiplier
+//   src/c/stats.c          - stats_apply_xp, stats_xp_to_next_level formulas
 // ---------------------------------------------------------------------------
+#include <math.h>
+
 #define MAX_SEGMENTS  8
-#define PERSIST_KEY_PET           1
-#define PERSIST_KEY_ADVENTURE     2
-#define PERSIST_KEY_WORKER_STEPS  3
-#define PERSIST_KEY_PENDING_ENCOUNTER 4
+#define NUM_BIOMES    6
+#define MAX_STAT      999
+
+#define PERSIST_KEY_PET                1
+#define PERSIST_KEY_ADVENTURE          2
+#define PERSIST_KEY_WORKER_STEPS       3
+#define PERSIST_KEY_PENDING_ENCOUNTER  4
+#define PERSIST_KEY_AUTO_ADVENTURE     6
+#define PERSIST_KEY_AUTO_SUMMARY       7
+
 #define NUM_ENCOUNTERS 5
+
+#define STAT_IDX_STR  0
+#define STAT_IDX_DEX  1
+#define STAT_IDX_AGI  2
+#define STAT_IDX_VIT  3
+#define STAT_IDX_INT  4
+#define STAT_IDX_LUK  5
 
 typedef struct {
   char     name[12];
@@ -38,12 +56,97 @@ typedef struct {
   uint8_t  encounters_total;
 } WorkerAdventure;
 
+typedef struct {
+  uint8_t  count;
+  uint16_t levels;
+  uint32_t xp;
+} WorkerAutoSummary;
+
+typedef struct {
+  uint8_t  primary_stat;
+  uint8_t  secondary_stat;
+  uint32_t base_steps;
+  uint8_t  difficulty;
+} WorkerBiomeConfig;
+
+// Values must match s_biomes[] in src/c/game_state.c.
+static const WorkerBiomeConfig s_worker_biomes[NUM_BIOMES] = {
+  { STAT_IDX_AGI, STAT_IDX_STR, 500,  1 },  // Plains
+  { STAT_IDX_DEX, STAT_IDX_LUK, 600,  2 },  // Forest
+  { STAT_IDX_STR, STAT_IDX_VIT, 700,  3 },  // Water
+  { STAT_IDX_STR, STAT_IDX_AGI, 800,  4 },  // Mountain
+  { STAT_IDX_INT, STAT_IDX_LUK, 900,  5 },  // Cave
+  { STAT_IDX_VIT, STAT_IDX_STR, 1000, 6 },  // Storm
+};
+
 typedef enum {
   WORKER_MSG_STEPS_UPDATE   = 0,
   WORKER_MSG_SEGMENT_DONE   = 1,
   WORKER_MSG_ADVENTURE_DONE = 2,
   WORKER_MSG_ENCOUNTER      = 3,
+  WORKER_MSG_AUTO_DONE      = 4,
 } WorkerMsgType;
+
+// ---------------------------------------------------------------------------
+// Stat & biome helpers (mirror pet_get_stat / biome_step_multiplier).
+// ---------------------------------------------------------------------------
+static uint16_t worker_pet_get_stat(const WorkerPet *pet, uint8_t index) {
+  switch (index) {
+    case STAT_IDX_STR: return pet->str;
+    case STAT_IDX_DEX: return pet->dex;
+    case STAT_IDX_AGI: return pet->agi;
+    case STAT_IDX_VIT: return pet->vit;
+    case STAT_IDX_INT: return pet->intel;
+    case STAT_IDX_LUK: return pet->luk;
+    default:           return 0;
+  }
+}
+
+static uint32_t worker_biome_step_multiplier(const WorkerBiomeConfig *cfg, const WorkerPet *pet) {
+  uint16_t primary   = worker_pet_get_stat(pet, cfg->primary_stat);
+  uint16_t secondary = worker_pet_get_stat(pet, cfg->secondary_stat);
+  return 100 + (primary * 5 / 10) + (secondary * 2 / 10);
+}
+
+// Mirror of stats_apply_xp in src/c/stats.c. Returns number of levels gained.
+// Formulas (must stay in sync with stats.c):
+//   xp_next_level = floor(150 * level^1.4)
+//   points_per_levelup = (level / 5) + 2
+static uint8_t worker_auto_apply_xp(WorkerPet *pet, uint32_t xp_gained) {
+  uint8_t levels_gained = 0;
+  pet->xp += xp_gained;
+  while (pet->xp >= pet->xp_next_level) {
+    pet->xp -= pet->xp_next_level;
+    pet->level++;
+    uint16_t pts = (uint16_t)(pet->level / 5) + 2;
+    pet->upgrade_points += pts;
+    pet->xp_next_level = (uint32_t)(150.0f * powf((float)pet->level, 1.4f));
+    levels_gained++;
+  }
+  return levels_gained;
+}
+
+// Mirror of adventure_init in src/c/game_state.c.
+// 5-8 segments, biomes weighted easy-to-hard (max biome index grows with
+// segment index), segment_length pre-computed from the pet's current stats.
+static void worker_auto_adventure_init(WorkerAdventure *adv, const WorkerPet *pet) {
+  memset(adv, 0, sizeof(WorkerAdventure));
+  adv->active = true;
+  adv->num_segments = 5 + (uint8_t)(rand() % 4);
+
+  for (uint8_t i = 0; i < adv->num_segments; i++) {
+    uint8_t max_biome = 1 + (i * NUM_BIOMES / adv->num_segments);
+    if (max_biome > NUM_BIOMES) max_biome = NUM_BIOMES;
+    adv->segments[i] = (uint8_t)(rand() % max_biome);
+  }
+
+  // segment_length[i] = ceil(base_steps * 100 / multiplier).
+  for (uint8_t i = 0; i < adv->num_segments; i++) {
+    const WorkerBiomeConfig *cfg = &s_worker_biomes[adv->segments[i]];
+    uint32_t mult = worker_biome_step_multiplier(cfg, pet);
+    adv->segment_length[i] = (cfg->base_steps * 100 + mult - 1) / mult;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // State
@@ -142,7 +245,38 @@ static void health_handler(HealthEventType event, void *context) {
   };
 
   if (outcome == 2) {
-    app_worker_send_message(WORKER_MSG_ADVENTURE_DONE, &msg);
+    bool auto_mode = persist_exists(PERSIST_KEY_AUTO_ADVENTURE)
+                  && persist_read_int(PERSIST_KEY_AUTO_ADVENTURE) != 0;
+
+    WorkerPet pet;
+    bool pet_ok = (persist_read_data(PERSIST_KEY_PET, &pet, sizeof(WorkerPet))
+                   == (int)sizeof(WorkerPet));
+
+    if (auto_mode && pet_ok) {
+      uint32_t earned_xp = adv.total_xp_earned;
+
+      uint8_t levels = worker_auto_apply_xp(&pet, earned_xp);
+      persist_write_data(PERSIST_KEY_PET, &pet, sizeof(WorkerPet));
+
+      WorkerAdventure new_adv;
+      worker_auto_adventure_init(&new_adv, &pet);
+      persist_write_data(PERSIST_KEY_ADVENTURE, &new_adv, sizeof(WorkerAdventure));
+
+      WorkerAutoSummary sum = {0};
+      if (persist_exists(PERSIST_KEY_AUTO_SUMMARY)) {
+        persist_read_data(PERSIST_KEY_AUTO_SUMMARY, &sum, sizeof(sum));
+      }
+      sum.count  += 1;
+      sum.xp     += earned_xp;
+      sum.levels += levels;
+      persist_write_data(PERSIST_KEY_AUTO_SUMMARY, &sum, sizeof(sum));
+
+      AppWorkerMessage am = {0};
+      app_worker_send_message(WORKER_MSG_AUTO_DONE, &am);
+    } else {
+      // Off, or pet missing - fall back to legacy behavior.
+      app_worker_send_message(WORKER_MSG_ADVENTURE_DONE, &msg);
+    }
   } else if (outcome == 1) {
     app_worker_send_message(WORKER_MSG_SEGMENT_DONE, &msg);
   } else if (outcome == 0) {

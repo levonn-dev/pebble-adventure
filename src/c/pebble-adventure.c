@@ -33,6 +33,12 @@ static void init(void) {
 
   screens_push_adventure();
 
+  // Pull any pending auto-completion summary out of persist and queue the popup.
+  // Safe to call when nothing is pending - it'll just reload state.
+  if (persist_exists(PERSIST_KEY_AUTO_SUMMARY)) {
+    adv_resolve_auto_done();
+  }
+
   // If adventure completed in background, push results on top of main
   Adventure adv;
   if (adventure_load(&adv) && adventure_is_complete(&adv)) {

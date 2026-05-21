@@ -73,6 +73,69 @@ void adv_resolve_pending_encounter(void) {
   if (s_adv_layer) layer_mark_dirty(s_adv_layer);
 }
 
+static void adv_queue_auto_popup(uint8_t count, uint32_t xp, uint16_t levels) {
+  char title[16];
+  char effect[20];
+  if (count <= 1) {
+    snprintf(title, sizeof(title), "Adventure!");
+  } else {
+    snprintf(title, sizeof(title), "Auto x%u", (unsigned)count);
+  }
+  if (levels > 0) {
+    snprintf(effect, sizeof(effect), "+%lu XP, Lv+%u",
+             (unsigned long)xp, (unsigned)levels);
+  } else {
+    snprintf(effect, sizeof(effect), "+%lu XP", (unsigned long)xp);
+  }
+  adv_queue_popup(title, effect, true);
+}
+
+void adv_resolve_auto_done(void) {
+  if (persist_exists(PERSIST_KEY_AUTO_SUMMARY)) {
+    AutoSummary sum;
+    int read = persist_read_data(PERSIST_KEY_AUTO_SUMMARY, &sum, sizeof(sum));
+    persist_delete(PERSIST_KEY_AUTO_SUMMARY);
+    if (read == (int)sizeof(sum) && sum.count > 0) {
+      adv_queue_auto_popup(sum.count, sum.xp, sum.levels);
+    }
+  }
+  // Reload state so the screen reflects the worker-applied pet and the
+  // freshly-initialized new adventure.
+  pet_load(&s_adv_pet);
+  adventure_load(&s_adv_current);
+  if (s_adv_layer) layer_mark_dirty(s_adv_layer);
+}
+
+// If the current adventure is complete and auto-mode is on, apply XP, init
+// a new adventure, write the summary, and queue the popup. Returns true if
+// the auto path ran. Covers worker fallbacks, debug Skip Seg, and the case
+// where auto was toggled on while sitting on a completed adventure.
+static bool adv_auto_complete_if_pending(void) {
+  if (!adventure_is_complete(&s_adv_current)) return false;
+  if (!ui_auto_adventure_enabled()) return false;
+
+  uint32_t earned_xp = s_adv_current.total_xp_earned;
+  uint8_t  levels    = stats_apply_xp(&s_adv_pet, earned_xp);
+  pet_save(&s_adv_pet);
+
+  Adventure new_adv;
+  adventure_init(&new_adv, &s_adv_pet);
+  adventure_save(&new_adv);
+
+  AutoSummary sum = {0};
+  if (persist_exists(PERSIST_KEY_AUTO_SUMMARY)) {
+    persist_read_data(PERSIST_KEY_AUTO_SUMMARY, &sum, sizeof(sum));
+  }
+  sum.count  += 1;
+  sum.xp     += earned_xp;
+  sum.levels += levels;
+  persist_write_data(PERSIST_KEY_AUTO_SUMMARY, &sum, sizeof(sum));
+
+  adv_resolve_auto_done();
+  ui_vibe_long();
+  return true;
+}
+
 static void adv_layer_update(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   int16_t w = bounds.size.w;
@@ -136,7 +199,10 @@ static void adv_layer_update(Layer *layer, GContext *ctx) {
       GRect(0, h / 2 - 22, w, 22),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
     graphics_context_set_text_color(ctx, GColorWhite);
-    graphics_draw_text(ctx, "SELECT: Results",
+    const char *complete_hint = ui_auto_adventure_enabled()
+      ? "SELECT: Continue"
+      : "SELECT: Results";
+    graphics_draw_text(ctx, complete_hint,
       fonts_get_system_font(FONT_KEY_GOTHIC_14),
       GRect(0, h / 2 + 6, w, 18),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
@@ -310,7 +376,9 @@ static void adv_click_select(ClickRecognizerRef r, void *ctx) {
   (void)r; (void)ctx;
   if (adv_dismiss_popup()) return;
   if (adventure_is_complete(&s_adv_current)) {
-    screens_push_results(s_adv_current.total_xp_earned, s_adv_current.encounters_total);
+    if (!adv_auto_complete_if_pending()) {
+      screens_push_results(s_adv_current.total_xp_earned, s_adv_current.encounters_total);
+    }
   } else {
     screens_push_menu();
   }
@@ -345,6 +413,10 @@ static void adv_click_config(void *ctx) {
 static void adv_window_appear(Window *window) {
   adventure_load(&s_adv_current);
   pet_load(&s_adv_pet);
+  // If we came back to a completed adventure with auto-mode on (e.g. Skip Seg
+  // in Options, or toggled on while sitting on the DONE prompt), roll into
+  // the next adventure here so the user never has to press SELECT.
+  adv_auto_complete_if_pending();
   if (s_adv_layer) layer_mark_dirty(s_adv_layer);
 }
 

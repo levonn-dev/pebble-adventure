@@ -15,6 +15,9 @@ void screens_on_worker_message(uint16_t type, AppWorkerMessage *message) {
 
   if (type == WORKER_MSG_ENCOUNTER) {
     adv_resolve_pending_encounter();
+  } else if (type == WORKER_MSG_AUTO_DONE) {
+    adv_resolve_auto_done();
+    ui_vibe_long();
   } else if (type == WORKER_MSG_ADVENTURE_DONE) {
     ui_vibe_long();
   } else if (type == WORKER_MSG_SEGMENT_DONE) {

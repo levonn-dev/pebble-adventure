@@ -20,15 +20,16 @@ static uint8_t  s_opt_cursor  = 0;
 static bool     s_opt_confirm = false;
 static Pet      s_opt_pet;
 
-#define OPT_VIBRATION 0
-#define OPT_DELETE    1
+#define OPT_VIBRATION       0
+#define OPT_AUTO_ADVENTURE  1
+#define OPT_DELETE          2
 #ifdef DEBUG_MODE
-#define OPT_SKIP_SEG   2
-#define OPT_ADD_STEPS  3
-#define OPT_ENCOUNTER  4
-#define OPT_COUNT      5
+#define OPT_SKIP_SEG   3
+#define OPT_ADD_STEPS  4
+#define OPT_ENCOUNTER  5
+#define OPT_COUNT      6
 #else
-#define OPT_COUNT     2
+#define OPT_COUNT      3
 #endif
 
 static void opt_layer_update(Layer *layer, GContext *ctx) {
@@ -88,8 +89,19 @@ static void opt_layer_update(Layer *layer, GContext *ctx) {
       GRect(8, row0_y, w - 16, 18),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
+    // Auto-Adventure toggle
+    int16_t row_auto_y = row0_y + 24;
+    GColor c_auto = ui_draw_menu_row(ctx, row_auto_y, w, 18, s_opt_cursor == OPT_AUTO_ADVENTURE);
+    char auto_buf[24];
+    snprintf(auto_buf, sizeof(auto_buf), "Auto-Adv: %s", ui_auto_adventure_enabled() ? "ON" : "OFF");
+    graphics_context_set_text_color(ctx, c_auto);
+    graphics_draw_text(ctx, auto_buf,
+      fonts_get_system_font(FONT_KEY_GOTHIC_18),
+      GRect(8, row_auto_y, w - 16, 18),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+
     // Delete pet
-    int16_t row1_y = row0_y + 24;
+    int16_t row1_y = row_auto_y + 24;
     ui_draw_menu_row(ctx, row1_y, w, 18, s_opt_cursor == OPT_DELETE);
     graphics_context_set_text_color(ctx,
       s_opt_cursor == OPT_DELETE ? PBL_IF_COLOR_ELSE(GColorRed, GColorBlack) : PBL_IF_COLOR_ELSE(GColorRed, GColorWhite));
@@ -165,6 +177,9 @@ static void opt_click_select(ClickRecognizerRef r, void *ctx) {
 
   if (s_opt_cursor == OPT_VIBRATION) {
     ui_set_vibration(!ui_vibration_enabled());
+    layer_mark_dirty(s_opt_layer);
+  } else if (s_opt_cursor == OPT_AUTO_ADVENTURE) {
+    ui_set_auto_adventure(!ui_auto_adventure_enabled());
     layer_mark_dirty(s_opt_layer);
   } else if (s_opt_cursor == OPT_DELETE) {
     s_opt_confirm = true;

@@ -48,3 +48,7 @@ void ui_set_vibration(bool enabled);
 void ui_vibe_short(void);
 void ui_vibe_double(void);
 void ui_vibe_long(void);
+
+// Auto-Adventure setting - reads PERSIST_KEY_AUTO_ADVENTURE, defaults false.
+bool ui_auto_adventure_enabled(void);
+void ui_set_auto_adventure(bool enabled);
