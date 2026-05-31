@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: levonn-dev/setup-pebble@v1.0.1
+        id: pebble
+        with:
+          build: 'true'
+          sdk-version: '4.9.169'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pebble-adventure-pbw
+          path: ${{ steps.pebble.outputs.pbw-path }}
+          if-no-files-found: error
